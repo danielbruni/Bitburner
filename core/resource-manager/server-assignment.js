@@ -75,13 +75,13 @@ export async function assignServersToTask(
       }
 
       // Debug: Check if the worker script exists on the server
-      const workerExists = ns.fileExists("/shared/worker.js", server);
+      const workerExists = ns.fileExists("/core/workers/worker.js", server);
       if (!workerExists) {
         // Try to copy the worker script to the server
         ns.print(
           `⚠️ Worker script not found on ${server}, attempting to copy...`
         );
-        if (ns.scp("/shared/worker.js", server, "home")) {
+        if (ns.scp("/core/workers/worker.js", server, "home")) {
           ns.print(`✅ Successfully copied worker.js to ${server}`);
         } else {
           ns.print(`❌ Failed to copy worker.js to ${server}`);
@@ -134,11 +134,9 @@ export async function assignServersToTask(
         }
 
         continue; // Skip the standard worker launch
-      }
-
-      // Standard worker launch for normal-sized servers
+      } // Standard worker launch for normal-sized servers
       const pid = ns.exec(
-        "/shared/worker.js",
+        "/core/workers/worker.js",
         server,
         threadsToAssign,
         task.target,
@@ -211,11 +209,9 @@ export async function assignServersToTask(
         const threadsToAssign = Math.min(
           maxThreads,
           totalThreadsNeeded - threadsAssigned
-        );
-
-        // Launch worker
+        ); // Launch worker
         const pid = ns.exec(
-          "/shared/worker.js",
+          "/core/workers/worker.js",
           server.name,
           threadsToAssign,
           task.target,
@@ -284,7 +280,7 @@ export async function assignServersToTask(
 
         if (threadsToAssign > 0) {
           const pid = ns.exec(
-            "/shared/worker.js",
+            "/core/workers/worker.js",
             "home",
             threadsToAssign,
             task.target,

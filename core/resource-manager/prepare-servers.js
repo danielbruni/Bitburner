@@ -9,13 +9,12 @@
 export async function prepareServers(ns) {
   const purchasedServers = ns.getPurchasedServers();
   ns.print(`🔍 Preparing ${purchasedServers.length} purchased servers...`);
-
   // Scripts to copy to each server
   const scriptsToCopy = [
-    "/shared/worker.js",
-    "/shared/hack.js",
-    "/shared/grow.js",
-    "/shared/weaken.js",
+    "/core/workers/worker.js",
+    "/core/operations/hack.js",
+    "/core/operations/grow.js",
+    "/core/operations/weaken.js",
   ];
 
   // Copy scripts to each purchased server

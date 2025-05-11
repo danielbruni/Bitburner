@@ -22,9 +22,8 @@ export async function allocateResources(
 ) {
   // Reset active worker count
   taskData.activeWorkers = 0;
-
   // Get info about worker script RAM requirements
-  const workerRam = ns.getScriptRam("/shared/worker.js");
+  const workerRam = ns.getScriptRam("/core/workers/worker.js");
 
   // Group servers by RAM capacity for better utilization
   const serversBySize = {};

@@ -1,5 +1,5 @@
 /**
- * v6/worker.js - Task Worker
+ * core/workers/worker.js - Task Worker
  * Executes specific hacking tasks with dynamic threading
  */
 
@@ -79,7 +79,7 @@ export async function main(ns) {
 
         if (money < maxMoney * 0.75) {
           ns.spawn(
-            "/shared/worker.js",
+            "/core/workers/worker.js",
             1,
             target,
             "grow",
@@ -90,7 +90,7 @@ export async function main(ns) {
       } else if (action === "grow") {
         // After grow, apply a weaken to counter security increase
         ns.spawn(
-          "/shared/worker.js",
+          "/core/workers/worker.js",
           1,
           target,
           "weaken",

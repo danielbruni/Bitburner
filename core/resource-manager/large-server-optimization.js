@@ -76,11 +76,9 @@ export async function launchChunkedWorkers(
     if (chunk.threads <= 0) continue;
 
     // Add a small delay between launches to prevent overloading
-    if (i > 0) await ns.sleep(50);
-
-    // Launch worker with this chunk
+    if (i > 0) await ns.sleep(50); // Launch worker with this chunk
     const pid = ns.exec(
-      "/shared/worker.js",
+      "/core/workers/worker.js",
       server,
       chunk.threads,
       task.target,

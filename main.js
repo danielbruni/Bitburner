@@ -50,15 +50,14 @@ export async function main(ns) {
  */
 function initializeScript(ns, config) {
   ns.disableLog("ALL");
-
   // Required scripts
   const requiredScripts = [
     "/core/server-manager.js",
     "/core/resource-manager/index.js",
-    "/shared/worker.js",
-    "/shared/hack.js",
-    "/shared/grow.js",
-    "/shared/weaken.js",
+    "/core/workers/worker.js",
+    "/core/operations/hack.js",
+    "/core/operations/grow.js",
+    "/core/operations/weaken.js",
   ];
 
   // Check if all required scripts exist
@@ -164,13 +163,12 @@ async function copyFilesToAvailableServers(ns, availableServers) {
   ns.print(
     `🔄 Copying essential files to ${servers.length} purchased servers...`
   );
-
   // Files to copy
   const filesToCopy = [
-    "/shared/worker.js",
-    "/shared/hack.js",
-    "/shared/grow.js",
-    "/shared/weaken.js",
+    "/core/workers/worker.js",
+    "/core/operations/hack.js",
+    "/core/operations/grow.js",
+    "/core/operations/weaken.js",
   ];
 
   // Copy to each server
