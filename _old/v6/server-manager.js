@@ -54,7 +54,7 @@ async function manageOwnedServers(ns, shouldUpgrade) {
       const currentRam = ns.getServerMaxRam(server);
       
       // Only upgrade if we can afford at least double the RAM
-      if (currentRam < maxAffordableRam / 2 && currentRam < 2048) {
+      if (currentRam < maxAffordableRam / 2) {
         // Calculate optimal RAM upgrade
         const upgradeRam = Math.min(maxAffordableRam, Math.pow(2, Math.floor(Math.log2(maxAffordableRam))));
         

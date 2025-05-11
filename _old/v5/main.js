@@ -88,6 +88,13 @@ export async function main(ns) {
         ns.tprint(`🎯 Targeting ${target.name} (score: ${target.score.toFixed(2)})`);
         const batchesStarted = await deployBatchesForTarget(ns, target, servers, CONFIG.delayStep, CONFIG.maxBatchesPerHost);
         totalBatches += batchesStarted;
+        
+        // Run the 16GB deployment script specifically for this target
+        if (batchesStarted > 0) { // Only if we successfully deployed some batches
+          ns.exec("/v5/deploy-16gb.js", "home", 1, target.name);
+          ns.print(`📊 Running 16GB deployment for ${target.name}`);
+          await ns.sleep(1000); // Give it a second to start up
+        }
       }
       
       ns.tprint(`📈 Total batches started: ${totalBatches}`);

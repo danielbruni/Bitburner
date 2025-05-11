@@ -13,27 +13,24 @@ export async function main(ns) {
     shouldUpgradeServers: false, // Set to true to upgrade purchased servers
     moneyThreshold: 0.75, // Hack when server has this much money (75%)
     securityThreshold: 5, // Extra security above minimum to tolerate
-    logLevel: 1, // 0: minimal, 1: normal, 2: verbose
+    logLevel: 1 // 0: minimal, 1: normal, 2: verbose
   };
-
+  
   // Initialize script
   initializeScript(ns, CONFIG);
-
+  
   // Main loop
   while (true) {
     try {
       // Update list of available servers and targets
-      const { availableServers, targetServers } = await updateServerLists(
-        ns,
-        CONFIG
-      );
-
-      // Copy essential files to all servers first to ensure they're ready
-      await copyFilesToAvailableServers(ns, availableServers);
-
+      const { availableServers, targetServers } = await updateServerLists(ns, CONFIG);
+      
+      // Copy essential files to all purchased servers first to ensure they're ready
+      await copyFilesToPurchasedServers(ns);
+      
       // Deploy resource manager to coordinate tasks
       await deployResourceManager(ns, availableServers, targetServers, CONFIG);
-
+      
       // Wait for next cycle
       await ns.sleep(CONFIG.targetUpdateInterval);
     } catch (error) {
@@ -49,21 +46,21 @@ export async function main(ns) {
  * @param {Object} config - Script configuration
  */
 function initializeScript(ns, config) {
-  ns.disableLog("ALL");
-
+  ns.disableLog('ALL');
+  
   // Required scripts
   const requiredScripts = [
-    "/v6/server-manager.js",
-    "/v6/resource-manager.js",
-    "/v6/worker.js",
-    "/shared/hack.js",
-    "/shared/grow.js",
-    "/shared/weaken.js",
+    '/v6/server-manager.js',
+    '/v6/resource-manager.js',
+    '/v6/worker.js',
+    '/shared/hack.js',
+    '/shared/grow.js',
+    '/shared/weaken.js'
   ];
-
+  
   // Check if all required scripts exist
-  ns.print("🔍 Checking required scripts...");
-
+  ns.print('🔍 Checking required scripts...');
+  
   let allScriptsExist = true;
   for (const script of requiredScripts) {
     const exists = ns.fileExists(script);
@@ -72,17 +69,15 @@ function initializeScript(ns, config) {
       allScriptsExist = false;
     }
   }
-
+  
   if (!allScriptsExist) {
-    ns.tprint(
-      "❌ Some required scripts are missing. Please create them first."
-    );
+    ns.tprint('❌ Some required scripts are missing. Please create them first.');
     ns.exit();
   }
-
+  
   // Display startup message
-  ns.tprint("==== v6 Dynamic Resource Allocation Hacking System ====");
-  ns.tprint("Initializing system...");
+  ns.tprint('==== v6 Dynamic Resource Allocation Hacking System ====');
+  ns.tprint('Initializing system...');
 }
 
 /**
@@ -93,27 +88,21 @@ function initializeScript(ns, config) {
  */
 async function updateServerLists(ns, config) {
   // Run server manager to get available servers
-  if (ns.scriptRunning("/v6/server-manager.js", "home")) {
-    ns.scriptKill("/v6/server-manager.js", "home");
+  if (ns.scriptRunning('/v6/server-manager.js', 'home')) {
+    ns.scriptKill('/v6/server-manager.js', 'home');
   }
-
-  ns.exec(
-    "/v6/server-manager.js",
-    "home",
-    1,
-    config.shouldUpgradeServers,
-    config.homeReservedRam
-  );
+  
+  ns.exec('/v6/server-manager.js', 'home', 1, config.shouldUpgradeServers, config.homeReservedRam);
   await ns.sleep(500); // Give it time to run
-
+  
   // Read results from server manager
-  const serverData = JSON.parse(ns.read("/v6/data/servers.txt"));
+  const serverData = JSON.parse(ns.read('/v6/data/servers.txt'));
   const availableServers = serverData.available || [];
-
+  
   // Find suitable target servers
-  const targetData = JSON.parse(ns.read("/v6/data/targets.txt"));
+  const targetData = JSON.parse(ns.read('/v6/data/targets.txt'));
   const targetServers = targetData.targets || [];
-
+  
   return { availableServers, targetServers };
 }
 
@@ -124,67 +113,52 @@ async function updateServerLists(ns, config) {
  * @param {Array} targetServers - List of target servers
  * @param {Object} config - Script configuration
  */
-async function deployResourceManager(
-  ns,
-  availableServers,
-  targetServers,
-  config
-) {
+async function deployResourceManager(ns, availableServers, targetServers, config) {
   // Kill any existing resource manager
-  if (ns.scriptRunning("/v6/resource-manager.js", "home")) {
-    ns.scriptKill("/v6/resource-manager.js", "home");
+  if (ns.scriptRunning('/v6/resource-manager.js', 'home')) {
+    ns.scriptKill('/v6/resource-manager.js', 'home');
   }
-
+  
   // Start resource manager
-  const pid = ns.exec(
-    "/v6/resource-manager.js",
-    "home",
-    1,
-    JSON.stringify(config),
-    config.moneyThreshold,
-    config.securityThreshold,
-    config.homeReservedRam
-  );
-
+  const pid = ns.exec('/v6/resource-manager.js', 'home', 1, 
+                      JSON.stringify(config),
+                      config.moneyThreshold,
+                      config.securityThreshold);
+  
   if (pid === 0) {
-    ns.tprint("❌ Failed to start resource manager!");
+    ns.tprint('❌ Failed to start resource manager!');
   } else {
-    ns.print("✅ Resource manager started successfully");
+    ns.print('✅ Resource manager started successfully');
   }
 }
 
 /**
- * Deploy resource manager to coordinate tasks
+ * Copy essential files to all purchased servers
  * @param {NS} ns - NetScript API
- * @param {Array} availableServers - List of available servers
  */
-async function copyFilesToAvailableServers(ns, availableServers) {
-  // Filter out home server
-  const servers = availableServers.filter((s) => s.name !== "home") || [];
-  ns.print(
-    `🔄 Copying essential files to ${servers.length} purchased servers...`
-  );
-
+async function copyFilesToPurchasedServers(ns) {
+  const purchasedServers = ns.getPurchasedServers();
+  ns.print(`🔄 Copying essential files to ${purchasedServers.length} purchased servers...`);
+  
   // Files to copy
   const filesToCopy = [
-    "/v6/worker.js",
-    "/shared/hack.js",
-    "/shared/grow.js",
-    "/shared/weaken.js",
+    '/v6/worker.js',
+    '/shared/hack.js',
+    '/shared/grow.js',
+    '/shared/weaken.js'
   ];
-
+  
   // Copy to each server
-  for (const server of servers) {
-    ns.print("Copy files to server: " + server.name);
+  for (const server of purchasedServers) {
     try {
       // Copy files if they don't exist
       for (const file of filesToCopy) {
-        if (!ns.fileExists(file, server.name)) {
-          ns.scp(file, server.name, "home");
+        if (!ns.fileExists(file, server)) {
+          ns.scp(file, server, 'home');
         }
       }
     } catch (error) {
-      ns.print(`Error copying files to ${server.name}: ${error}`);
+      ns.print(`Error copying files to ${server}: ${error}`);
     }
   }
 }
