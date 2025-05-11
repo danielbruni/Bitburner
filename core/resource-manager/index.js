@@ -14,9 +14,10 @@ export async function main(ns) {
   const moneyThreshold = ns.args[1] || 0.75;
   const securityThreshold = ns.args[2] || 5;
   const homeReservedRam = ns.args[3] || 10;
+
   // Create data directory if needed
   if (!ns.fileExists("/data")) {
-    ns.exec("/core/server-manager.js", "home", 1);
+    ns.exec("/core/server-manager/index.js", "home", 1);
     await ns.sleep(1000);
   }
 

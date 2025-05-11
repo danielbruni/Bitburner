@@ -49,10 +49,9 @@ export async function main(ns) {
  * @param {Object} config - Script configuration
  */
 function initializeScript(ns, config) {
-  ns.disableLog("ALL");
-  // Required scripts
+  ns.disableLog("ALL"); // Required scripts
   const requiredScripts = [
-    "/core/server-manager.js",
+    "/core/server-manager/index.js",
     "/core/resource-manager/index.js",
     "/core/workers/worker.js",
     "/core/operations/hack.js",
@@ -92,12 +91,12 @@ function initializeScript(ns, config) {
  */
 async function updateServerLists(ns, config) {
   // Run server manager to get available servers
-  if (ns.scriptRunning("/core/server-manager.js", "home")) {
-    ns.scriptKill("/core/server-manager.js", "home");
+  if (ns.scriptRunning("/core/server-manager/index.js", "home")) {
+    ns.scriptKill("/core/server-manager/index.js", "home");
   }
 
   ns.exec(
-    "/core/server-manager.js",
+    "/core/server-manager/index.js",
     "home",
     1,
     config.shouldUpgradeServers,
