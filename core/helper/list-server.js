@@ -1,4 +1,4 @@
-import { table } from "helper/table.js";
+import { table } from "/core/helper/table.js";
 
 /** @param {NS} ns */
 export async function main(ns) {
