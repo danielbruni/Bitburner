@@ -5,6 +5,9 @@
  * and automatically connects to it through terminal commands.
  */
 
+// Export findPath function to be used by other scripts
+export { findPath };
+
 /** @param {NS} ns */
 export async function main(ns) {
   // Get the target server from arguments
