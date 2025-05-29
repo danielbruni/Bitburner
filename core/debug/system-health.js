@@ -5,6 +5,7 @@
 
 import { formatBytes } from "../utils/common.js";
 import { getWorkerStats } from "./worker-utils.js";
+import { getConfig } from "../config/system-config.js";
 
 /** @param {NS} ns */
 export async function main(ns) {
@@ -129,8 +130,7 @@ export async function main(ns) {
     for (const server of serverData.available || []) {
       availableRam += Math.max(0, server.maxRam - server.usedRam);
     }
-
-    if (availableRam < workerRam * 2) {
+    if (availableRam < workerRam * getConfig("debug.healthCheckMinWorkers")) {
       issues.push({
         level: "MEDIUM",
         problem: "Very low available RAM across all servers",
@@ -148,8 +148,7 @@ export async function main(ns) {
   const homeRam = ns.getServerMaxRam("home");
   const homeUsed = ns.getServerUsedRam("home");
   const homeAvailable = homeRam - homeUsed;
-
-  if (homeAvailable < 50) {
+  if (homeAvailable < getConfig("debug.healthCheckHomeRamThreshold")) {
     issues.push({
       level: "MEDIUM",
       problem: "Home server is almost full",

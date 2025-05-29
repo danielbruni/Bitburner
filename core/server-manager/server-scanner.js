@@ -4,6 +4,7 @@
 
 import { tryGetRootAccess } from "./root-access.js";
 import { categorizeServer } from "./server-categorizer.js";
+import { getConfig } from "../config/system-config.js";
 
 /**
  * Scan all servers in the network and categorize them

@@ -4,6 +4,7 @@
 
 import { getMaxAffordableRam } from "./utils.js";
 import { formatMoney } from "../utils/common.js";
+import { getConfig } from "../config/system-config.js";
 
 /**
  * Purchase and manage owned servers
@@ -29,10 +30,11 @@ export async function manageOwnedServers(ns, shouldUpgrade) {
   if (shouldUpgrade) {
     // Upgrade existing servers if we can afford better ones
     for (const server of purchasedServers) {
-      const currentRam = ns.getServerMaxRam(server);
-
-      // Only upgrade if we can afford at least double the RAM
-      if (currentRam < maxAffordableRam / 2) {
+      const currentRam = ns.getServerMaxRam(server); // Only upgrade if we can afford at least the configured upgrade multiplier
+      if (
+        currentRam <
+        maxAffordableRam / getConfig("serverManagement.upgradeRamMultiplier")
+      ) {
         // Calculate optimal RAM upgrade
         const upgradeRam = Math.min(
           maxAffordableRam,
@@ -54,10 +56,9 @@ export async function manageOwnedServers(ns, shouldUpgrade) {
       `ℹ️ Server upgrades are disabled. Set shouldUpgradeServers to true to enable.`
     );
   }
-
   // Buy new servers if we don't have max
   while (purchasedServers.length < maxServers) {
-    const ram = 8;
+    const ram = getConfig("serverManagement.defaultNewServerRam");
 
     // Check if we can afford it
     const cost = ns.getPurchasedServerCost(ram);

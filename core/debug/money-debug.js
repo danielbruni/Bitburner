@@ -4,6 +4,7 @@
  */
 
 import { formatMoney, formatBytes } from "../utils/common.js";
+import { getConfig } from "../config/system-config.js";
 
 /** @param {NS} ns */
 export async function main(ns) {
@@ -39,9 +40,8 @@ export async function main(ns) {
     if (debugMode === "monitor") {
       await monitorEarnings(ns);
     }
-
     if (continuous) {
-      await ns.sleep(5000); // Update every 5 seconds
+      await ns.sleep(getConfig("debug.monitoringInterval", 5000)); // Update based on config
     }
   } while (continuous);
 }

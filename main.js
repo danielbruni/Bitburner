@@ -7,21 +7,32 @@
 import { createProcessMonitor } from "/core/process/process-health.js";
 import { ProcessCoordinator } from "/core/process/coordination.js";
 
+import {
+  PROCESS_CONFIG,
+  RESOURCE_CONFIG,
+  DEBUG_CONFIG,
+  getConfig,
+  loadConfigFromFile,
+} from "./core/config/system-config.js";
+
 /** @param {NS} ns */
 export async function main(ns) {
-  // Configuration
+  // Load user configuration if it exists
+  loadConfigFromFile(ns);
+
+  // Configuration - now using centralized config
   const CONFIG = {
-    targetUpdateInterval: 60000, // How often to reassess targets (ms)
-    serverUpdateInterval: 10000, // How often to scan for new servers (ms)
-    homeReservedRam: 20, // GB of RAM to reserve on home server
-    shouldUpgradeServers: false, // Set to true to upgrade purchased servers
-    moneyThreshold: 0.75, // Hack when server has this much money (75%)
-    securityThreshold: 5, // Extra security above minimum to tolerate
-    logLevel: 1, // 0: minimal, 1: normal, 2: verbose
-    healthCheckInterval: 5000, // How often to check process health (ms)
-    maxDataAge: 10000, // Max age for server data before refresh (ms)
-    maxTargetAge: 60000, // Max age for target data before refresh (ms)
-    fileCopyInterval: 300000, // How often to copy files to servers (ms)
+    targetUpdateInterval: getConfig("processes.targetUpdateInterval"),
+    serverUpdateInterval: getConfig("processes.serverUpdateInterval"),
+    homeReservedRam: getConfig("resources.homeReservedRam"),
+    shouldUpgradeServers: getConfig("serverManagement.autoUpgradeServers"),
+    moneyThreshold: getConfig("resources.moneyThreshold"),
+    securityThreshold: getConfig("resources.securityThreshold"),
+    logLevel: getConfig("debug.logLevel"),
+    healthCheckInterval: getConfig("processes.healthCheckInterval"),
+    maxDataAge: getConfig("processes.maxDataAge"),
+    maxTargetAge: getConfig("processes.maxTargetAge"),
+    fileCopyInterval: getConfig("processes.fileCopyInterval"),
   };
 
   // Initialize script and process management

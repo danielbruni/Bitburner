@@ -2,6 +2,8 @@
  * thread-calculator.js - Calculates optimal thread counts for tasks
  */
 
+import { getConfig } from "../config/system-config.js";
+
 /**
  * Calculate optimal thread counts for a task
  * @param {NS} ns - NetScript API
@@ -13,8 +15,8 @@ export function calculateThreads(ns, task) {
 
   switch (action) {
     case "hack":
-      // For hack, we take at most 25% of money per cycle
-      const hackPercent = 0.25;
+      // For hack, we take at most a configurable percentage of money per cycle
+      const hackPercent = getConfig("optimization.hackPercentPerCycle");
       const hackThreads = Math.floor(
         ns.hackAnalyzeThreads(target, money.current * hackPercent)
       );
@@ -31,11 +33,10 @@ export function calculateThreads(ns, task) {
         total: growThreads > 0 ? growThreads : 1,
         action: "grow",
       };
-
     case "weaken":
       // Calculate how much we need to weaken
       const weakenAmount = security.current - security.min;
-      const weakenPerThread = 0.05;
+      const weakenPerThread = getConfig("optimization.weakenPerThread");
       const weakenThreads = Math.ceil(weakenAmount / weakenPerThread);
       return {
         total: weakenThreads > 0 ? weakenThreads : 1,

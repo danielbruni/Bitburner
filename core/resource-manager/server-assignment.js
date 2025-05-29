@@ -6,6 +6,7 @@ import {
   calculateLargeServerChunks,
   launchChunkedWorkers,
 } from "./large-server-optimization.js";
+import { getConfig } from "../config/system-config.js";
 
 /**
  * Assign servers to a task

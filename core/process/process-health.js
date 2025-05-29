@@ -3,6 +3,8 @@
  * Provides health checking and coordination for system processes
  */
 
+import { getConfig } from "../config/system-config.js";
+
 /**
  * Process health monitor that tracks running processes and their status
  */
@@ -10,9 +12,9 @@ export class ProcessHealthMonitor {
   constructor(ns) {
     this.ns = ns;
     this.processes = new Map();
-    this.healthFile = "/data/process-health.json";
+    this.healthFile = getConfig("processes.healthDataFile");
     this.lastHealthCheck = 0;
-    this.healthCheckInterval = 5000; // Check every 5 seconds
+    this.healthCheckInterval = getConfig("processes.healthCheckInterval");
   }
 
   /**

@@ -2,12 +2,14 @@
  * core/workers/worker.js - Task Worker
  * Executes specific hacking tasks with dynamic threading
  *
- * ⚠️  IMPORTANT: NO IMPORTS ALLOWED IN THIS FILE! ⚠️
+ * ⚠️  IMPORTANT: NO IMPORTS OR FILE READING ALLOWED IN THIS FILE! ⚠️
  * This file gets copied to all servers in Bitburner, so it must be completely
- * self-contained with no external dependencies or import statements.
- * All utility functions must be defined locally within this file.
+ * self-contained with no external dependencies, import statements, or file reading.
+ * All utility functions and configuration values must be hardcoded locally within this file.
+ * Do NOT use ns.read(), ns.fileExists(), or any file operations!
  *
- * AI/ChatBot Note: Always keep this file import-free and self-contained!
+ * AI/ChatBot Note: Always keep this file import-free, file-read-free, and completely self-contained!
+ * This worker runs in isolation on remote servers with no access to the home filesystem.
  */
 
 /** @param {NS} ns */
@@ -73,18 +75,21 @@ export async function main(ns) {
       );
     }
 
-    // For special RAM sizes like 16GB servers, execute different optimizations
+    // For special RAM sizes, execute different optimizations
+    const specialRamSize = 16; // Hardcoded: special RAM size for optimization
+    const growthThreshold = 0.75; // Hardcoded: growth money threshold
+
     if (
-      ns.getServerMaxRam(ns.getHostname()) === 16 &&
+      ns.getServerMaxRam(ns.getHostname()) === specialRamSize &&
       ns.getServerUsedRam(ns.getHostname()) > 0
     ) {
-      // For 16GB servers, immediately follow up with another action if more are needed
+      // For special servers, immediately follow up with another action if more are needed
       if (action === "weaken") {
         // After weaken, check if we need to grow
         const money = ns.getServerMoneyAvailable(target);
         const maxMoney = ns.getServerMaxMoney(target);
 
-        if (money < maxMoney * 0.75) {
+        if (money < maxMoney * growthThreshold) {
           ns.spawn(
             "/core/workers/worker.js",
             1,

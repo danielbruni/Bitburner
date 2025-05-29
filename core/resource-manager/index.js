@@ -7,13 +7,22 @@ import { prepareServers } from "./prepare-servers.js";
 import { prioritizeTasks } from "./task-prioritization.js";
 import { allocateResources } from "./resource-allocation.js";
 import { cleanupWorkers, outputStatus } from "./utils.js";
+import {
+  RESOURCE_CONFIG,
+  getConfig,
+  loadConfigFromFile,
+} from "../config/system-config.js";
 
 /** @param {NS} ns */
 export async function main(ns) {
-  // Parse command line arguments
-  const moneyThreshold = ns.args[1] || 0.75;
-  const securityThreshold = ns.args[2] || 5;
-  const homeReservedRam = ns.args[3] || 10;
+  // Load user configuration if available
+  loadConfigFromFile(ns);
+
+  // Parse command line arguments with config defaults
+  const moneyThreshold = ns.args[1] || getConfig("resources.moneyThreshold");
+  const securityThreshold =
+    ns.args[2] || getConfig("resources.securityThreshold");
+  const homeReservedRam = ns.args[3] || getConfig("resources.homeReservedRam");
 
   // Create data directory if needed
   if (!ns.fileExists("/data")) {

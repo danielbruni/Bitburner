@@ -5,10 +5,12 @@
 
 import { formatMoney } from "../utils/common.js";
 import { getWorkerStats, formatWorkerStats } from "./worker-utils.js";
+import { getConfig } from "../config/system-config.js";
 
 /** @param {NS} ns */
 export async function main(ns) {
-  const updateInterval = ns.args[0] || 2000; // Update every 2 seconds
+  const updateInterval =
+    ns.args[0] || getConfig("debug.earningsMonitorUpdateInterval");
   ns.disableLog("ALL");
   ns.ui.openTail();
 
@@ -28,7 +30,8 @@ export async function main(ns) {
     if (timeDiff > 0 && samples.length > 0) {
       const rate = earned / timeDiff;
       samples.push(rate);
-      if (samples.length > 30) samples.shift(); // Keep last 30 samples
+      if (samples.length > getConfig("debug.earningsMonitorSampleSize"))
+        samples.shift(); // Keep last N samples
     }
 
     // Calculate average rate
@@ -44,7 +47,7 @@ export async function main(ns) {
     ns.print(`Total Earned:  $${formatMoney(earned)}`);
     ns.print("");
 
-    if (samples.length > 5) {
+    if (samples.length > getConfig("debug.earningsMonitorMinSamples")) {
       ns.print(`Current Rate:  $${formatMoney(avgRate)}/sec`);
       ns.print(`              $${formatMoney(avgRate * 60)}/min`);
       ns.print(`              $${formatMoney(avgRate * 3600)}/hour`);

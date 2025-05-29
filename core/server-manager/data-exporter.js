@@ -2,6 +2,8 @@
  * data-exporter.js - Exports server data to files
  */
 
+import { getConfig } from "../config/system-config.js";
+
 /**
  * Output server data to files for other scripts to use
  * @param {NS} ns - NetScript API
@@ -9,14 +11,13 @@
  */
 export function outputServerData(ns, serverMap) {
   // Write available servers to file
-  ns.write("/data/servers.json", JSON.stringify(serverMap), "w");
+  const serversFile = getConfig("files.serversDataFile");
+  const targetsFile = getConfig("files.targetsDataFile");
+
+  ns.write(serversFile, JSON.stringify(serverMap), "w");
 
   // Write target servers to a separate file for easier access
-  ns.write(
-    "/data/targets.json",
-    JSON.stringify({ targets: serverMap.targets }),
-    "w"
-  );
+  ns.write(targetsFile, JSON.stringify({ targets: serverMap.targets }), "w");
 
   // Output summary
   ns.print(

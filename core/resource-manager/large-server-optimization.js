@@ -2,6 +2,8 @@
  * large-server-optimization.js - Optimizations for servers with >1TB RAM
  */
 
+import { getConfig } from "../config/system-config.js";
+
 /**
  * Calculate optimal thread chunks for large servers
  * This helps distribute threads more efficiently on very large servers
@@ -12,8 +14,9 @@
  * @returns {Array} Array of thread chunks to distribute
  */
 export function calculateLargeServerChunks(ns, task, totalRam, workerRam) {
-  // Skip optimization for servers under 1TB
-  if (totalRam < 1024) {
+  // Skip optimization for servers under the large server threshold
+  const largeServerThreshold = getConfig("workers.largeServerThreshold");
+  if (totalRam < largeServerThreshold) {
     return [
       {
         threads: Math.floor(totalRam / workerRam),
@@ -25,7 +28,7 @@ export function calculateLargeServerChunks(ns, task, totalRam, workerRam) {
   // For large servers, we'll split the allocation into multiple chunks
   // This allows for more efficient utilization and better parallelism
   const chunks = [];
-  const maxThreadsPerChunk = 10000; // Avoid too large single allocations
+  const maxThreadsPerChunk = getConfig("workers.maxThreadsPerChunk");
   let remainingRam = totalRam;
 
   // For very large servers with >1TB RAM, distribute tasks more efficiently
@@ -73,10 +76,8 @@ export async function launchChunkedWorkers(
     const chunk = chunks[i];
 
     // Skip empty chunks
-    if (chunk.threads <= 0) continue;
-
-    // Add a small delay between launches to prevent overloading
-    if (i > 0) await ns.sleep(50); // Launch worker with this chunk
+    if (chunk.threads <= 0) continue; // Add a small delay between launches to prevent overloading
+    if (i > 0) await ns.sleep(getConfig("workers.chunkLaunchDelay")); // Launch worker with this chunk
     const pid = ns.exec(
       "/core/workers/worker.js",
       server,

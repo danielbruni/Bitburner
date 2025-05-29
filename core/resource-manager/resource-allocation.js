@@ -4,6 +4,7 @@
 
 import { assignServersToTask } from "./server-assignment.js";
 import { calculateThreads } from "./thread-calculator.js";
+import { getConfig } from "../config/system-config.js";
 
 /**
  * Allocate server resources to tasks
@@ -32,15 +33,16 @@ export async function allocateResources(
     const availableRam = server.maxRam - server.usedRam;
 
     // Skip servers with insufficient RAM
-    if (availableRam < workerRam) continue;
+    if (availableRam < workerRam) continue; // Group by RAM size category using centralized config
+    const categories = getConfig("serverCategories");
+    let sizeCategory = "tiny";
 
-    // Group by RAM size category
-    let sizeCategory;
-    if (availableRam < 8) sizeCategory = "tiny"; // < 8GB
-    else if (availableRam < 32) sizeCategory = "small"; // 8-32GB
-    else if (availableRam < 128) sizeCategory = "medium"; // 32-128GB
-    else if (availableRam < 512) sizeCategory = "large"; // 128-512GB
-    else sizeCategory = "huge"; // >512GB
+    for (const [category, limits] of Object.entries(categories)) {
+      if (availableRam >= limits.minRam && availableRam < limits.maxRam) {
+        sizeCategory = category;
+        break;
+      }
+    }
 
     if (!serversBySize[sizeCategory]) {
       serversBySize[sizeCategory] = [];
