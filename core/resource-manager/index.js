@@ -42,7 +42,7 @@ export async function main(ns) {
     try {
       // Load server data
       const serverData = JSON.parse(
-        ns.read("/data/servers.txt") || '{"available":[],"targets":[]}'
+        ns.read("/data/servers.json") || '{"available":[],"targets":[]}'
       );
       const availableServers = serverData.available;
       const targetServers = serverData.targets;

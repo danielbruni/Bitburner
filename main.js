@@ -105,11 +105,11 @@ async function updateServerLists(ns, config) {
   await ns.sleep(500); // Give it time to run
 
   // Read results from server manager
-  const serverData = JSON.parse(ns.read("/data/servers.txt"));
+  const serverData = JSON.parse(ns.read("/data/servers.json"));
   const availableServers = serverData.available || [];
 
   // Find suitable target servers
-  const targetData = JSON.parse(ns.read("/data/targets.txt"));
+  const targetData = JSON.parse(ns.read("/data/targets.json"));
   const targetServers = targetData.targets || [];
 
   return { availableServers, targetServers };

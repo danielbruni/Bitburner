@@ -14,9 +14,9 @@ export async function main(ns) {
   const homeReservedRam = ns.args[1] || 10; // GB of RAM to reserve on home
 
   // Create data directory if it doesn't exist
-  if (!ns.fileExists("/data/servers.txt")) {
+  if (!ns.fileExists("/data/servers.json")) {
     ns.write(
-      "/data/servers.txt",
+      "/data/servers.json",
       JSON.stringify({ available: [], targets: [] }),
       "w"
     );

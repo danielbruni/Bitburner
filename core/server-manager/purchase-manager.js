@@ -56,11 +56,7 @@ export async function manageOwnedServers(ns, shouldUpgrade) {
 
   // Buy new servers if we don't have max
   while (purchasedServers.length < maxServers) {
-    // Get minimum viable RAM (starting with 16GB if possible)
-    const ram = Math.min(
-      Math.max(16, maxAffordableRam),
-      Math.pow(2, Math.floor(Math.log2(maxAffordableRam)))
-    );
+    const ram = 8;
 
     // Check if we can afford it
     const cost = ns.getPurchasedServerCost(ram);

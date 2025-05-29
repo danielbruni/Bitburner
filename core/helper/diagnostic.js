@@ -4,15 +4,15 @@ export async function main(ns) {
 
   // 1. Check if data files exist and have content
   ns.tprint("\n1. DATA FILES:");
-  const dataFiles = ["/data/servers.txt", "/data/targets.txt"];
+  const dataFiles = ["/data/servers.json", "/data/targets.json"];
   for (const file of dataFiles) {
     if (ns.fileExists(file)) {
       try {
         const content = JSON.parse(ns.read(file));
         ns.tprint(`${file}: ✅ EXISTS`);
-        if (file === "/data/servers.txt") {
+        if (file === "/data/servers.json") {
           ns.tprint(`  Available servers: ${content.available?.length || 0}`);
-        } else if (file === "/data/targets.txt") {
+        } else if (file === "/data/targets.json") {
           ns.tprint(`  Target servers: ${content.targets?.length || 0}`);
           if (content.targets && content.targets.length > 0) {
             ns.tprint("  Top 3 targets:");

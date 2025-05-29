@@ -9,11 +9,11 @@
  */
 export function outputServerData(ns, serverMap) {
   // Write available servers to file
-  ns.write("/data/servers.txt", JSON.stringify(serverMap), "w");
+  ns.write("/data/servers.json", JSON.stringify(serverMap), "w");
 
   // Write target servers to a separate file for easier access
   ns.write(
-    "/data/targets.txt",
+    "/data/targets.json",
     JSON.stringify({ targets: serverMap.targets }),
     "w"
   );

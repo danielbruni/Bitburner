@@ -28,14 +28,14 @@ export async function main(ns) {
 
   // Check if data files were created
   if (
-    ns.fileExists("/data/servers.txt") &&
-    ns.fileExists("/data/targets.txt")
+    ns.fileExists("/data/servers.json") &&
+    ns.fileExists("/data/targets.json")
   ) {
     ns.tprint("✅ Data files successfully created!");
 
     // Display summary from files
-    const serverData = JSON.parse(ns.read("/data/servers.txt"));
-    const targetData = JSON.parse(ns.read("/data/targets.txt"));
+    const serverData = JSON.parse(ns.read("/data/servers.json"));
+    const targetData = JSON.parse(ns.read("/data/targets.json"));
 
     ns.tprint(`📊 Available servers: ${serverData.available.length}`);
     ns.tprint(`🎯 Target servers: ${targetData.targets.length}`);
