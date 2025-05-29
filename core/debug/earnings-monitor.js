@@ -4,6 +4,7 @@
  */
 
 import { formatMoney } from "../resource-manager/utils.js";
+import { getWorkerStats, formatWorkerStats } from "./worker-utils.js";
 
 /** @param {NS} ns */
 export async function main(ns) {
@@ -61,36 +62,11 @@ export async function main(ns) {
 }
 
 async function showQuickStatus(ns) {
-  // Count active workers
-  const allServers = [...ns.getPurchasedServers(), "home"];
-  let totalWorkers = 0;
-  let hackWorkers = 0;
-  let growWorkers = 0;
-  let weakenWorkers = 0;
-
-  for (const server of allServers) {
-    const processes = ns.ps(server);
-    const workers = processes.filter(
-      (p) =>
-        p.filename.includes("worker.js") ||
-        p.filename === "/core/workers/worker.js" ||
-        p.filename === "core/workers/worker.js" ||
-        p.filename === "worker.js"
-    );
-
-    for (const worker of workers) {
-      totalWorkers++;
-      const action = worker.args[1];
-      if (action === "hack") hackWorkers++;
-      else if (action === "grow") growWorkers++;
-      else if (action === "weaken") weakenWorkers++;
-    }
-  }
+  // Get worker statistics using the utility function
+  const workerStats = getWorkerStats(ns);
 
   ns.print("👷 === SYSTEM STATUS ===");
-  ns.print(
-    `Active Workers: ${totalWorkers} (${hackWorkers}H ${growWorkers}G ${weakenWorkers}W)`
-  );
+  ns.print(`Active Workers: ${formatWorkerStats(workerStats)}`);
 
   // Check key systems
   const resourceManager = ns.scriptRunning(
@@ -102,7 +78,7 @@ async function showQuickStatus(ns) {
   ns.print(`Resource Manager: ${resourceManager ? "✅" : "❌"}`);
   ns.print(`Main Script: ${mainScript ? "✅" : "❌"}`);
 
-  if (totalWorkers === 0) {
+  if (workerStats.total === 0) {
     ns.print("");
     ns.print("🚨 NO WORKERS RUNNING!");
     ns.print("This is why no money is being made.");

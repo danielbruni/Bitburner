@@ -3,6 +3,11 @@
  * Easy access to all debugging tools
  */
 
+import {
+  getWorkerStats,
+  formatWorkerStats,
+} from "./core/debug/worker-utils.js";
+
 /** @param {NS} ns */
 export async function main(ns) {
   const command = ns.args[0] || "help";
@@ -89,70 +94,21 @@ async function quickDiagnostic(ns) {
   if (!mainRunning) {
     issues.push("❌ Main script not running");
   }
-
   if (!resourceManagerRunning) {
     issues.push("❌ Resource manager not running");
   }
-  // Check workers - look for multiple possible worker patterns
-  const allServers = [...ns.getPurchasedServers(), "home"];
-  let workerCount = 0;
-  let hackWorkers = 0;
-  let totalProcesses = 0;
-  let foundWorkerFiles = new Set();
 
-  for (const server of allServers) {
-    const processes = ns.ps(server);
-    totalProcesses += processes.length;
+  // Check workers using the utility function
+  const workerStats = getWorkerStats(ns);
 
-    // Look for various worker patterns
-    const workers = processes.filter(
-      (p) =>
-        p.filename.includes("worker.js") ||
-        p.filename === "/core/workers/worker.js" ||
-        p.filename === "core/workers/worker.js" ||
-        p.filename === "worker.js" ||
-        p.filename.endsWith("/worker.js")
-    );
-
-    // Also check for operation scripts directly
-    const operations = processes.filter(
-      (p) =>
-        p.filename.includes("hack.js") ||
-        p.filename.includes("grow.js") ||
-        p.filename.includes("weaken.js")
-    );
-
-    workerCount += workers.length + operations.length;
-
-    // Track what worker files we found
-    for (const worker of workers) {
-      foundWorkerFiles.add(worker.filename);
-      if (worker.args && worker.args[1] === "hack") hackWorkers++;
-    }
-
-    // Check operations for hack scripts
-    for (const op of operations) {
-      foundWorkerFiles.add(op.filename);
-      if (op.filename.includes("hack.js")) hackWorkers++;
-    }
-  }
-
-  ns.tprint(
-    `🔍 Debug: Found ${totalProcesses} total processes across all servers`
-  );
-  if (foundWorkerFiles.size > 0) {
-    ns.tprint(
-      `🔍 Debug: Worker files found: ${Array.from(foundWorkerFiles).join(", ")}`
-    );
-  }
-
-  if (workerCount === 0) {
+  ns.tprint(`🔍 Debug: Found ${formatWorkerStats(workerStats)} workers`);
+  if (workerStats.total === 0) {
     issues.push("❌ No workers running");
     ns.tprint("🔍 Debug: Will show all running processes...");
 
     // Show what IS running for debugging
+    const allServers = [...ns.getPurchasedServers(), "home"];
     for (const server of allServers.slice(0, 3)) {
-      // Show first 3 servers
       const processes = ns.ps(server);
       if (processes.length > 0) {
         ns.tprint(
@@ -160,8 +116,13 @@ async function quickDiagnostic(ns) {
         );
       }
     }
-  } else if (hackWorkers === 0) {
-    issues.push("⚠️ No hack workers (no money generation)");
+  } else {
+    ns.tprint(
+      `💡 Workers detected: ${workerStats.hack} hack, ${workerStats.grow} grow, ${workerStats.weaken} weaken`
+    );
+    if (workerStats.hack === 0) {
+      issues.push("⚠️ No hack workers (no money generation)");
+    }
   }
 
   // Check money
@@ -170,7 +131,9 @@ async function quickDiagnostic(ns) {
 
   if (issues.length === 0) {
     ns.tprint("✅ No obvious issues found!");
-    ns.tprint(`👷 ${workerCount} workers active (${hackWorkers} hacking)`);
+    ns.tprint(
+      `👷 ${workerStats.total} workers active (${workerStats.hack} hacking)`
+    );
     ns.tprint("");
     ns.tprint("If still no money, try:");
     ns.tprint("- run debug-runner.js monitor (watch earnings live)");

@@ -9,7 +9,7 @@ export async function main(ns) {
   const CONFIG = {
     targetUpdateInterval: 60000, // How often to reassess targets (ms)
     serverUpdateInterval: 10000, // How often to scan for new servers (ms)
-    homeReservedRam: 10, // GB of RAM to reserve on home server
+    homeReservedRam: 20, // GB of RAM to reserve on home server
     shouldUpgradeServers: false, // Set to true to upgrade purchased servers
     moneyThreshold: 0.75, // Hack when server has this much money (75%)
     securityThreshold: 5, // Extra security above minimum to tolerate
