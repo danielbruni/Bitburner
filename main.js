@@ -2,15 +2,33 @@
  * main.js - Dynamic Resource Allocation Hacking System
  * A more flexible approach than batches that maximizes resource utilization
  * Now with proper process management and health monitoring
+ *
+ * Usage:
+ *   run main.js                   - Normal startup
+ *   run main.js --clear-data=true - Clear data folder and restart fresh
  */
 
 import { createProcessMonitor } from "/core/process/process-health.js";
 import { ProcessCoordinator } from "/core/process/coordination.js";
 
 import { getConfig, loadConfigFromFile } from "./core/config/system-config.js";
+import { clearDataFolder } from "./core/utils/data.js";
 
-/** @param {NS} ns */
+/**
+ * Main system entry point
+ * @param {NS} ns
+ * @param {boolean} [clearData=false] - If true, clears all data files before starting
+ */
 export async function main(ns) {
+  // Check for the clearData argument (--clear-data flag)
+  const args = ns.flags([["clear-data", false]]);
+  const shouldClearData = args["clear-data"];
+
+  if (shouldClearData) {
+    await clearDataFolder(ns);
+    ns.tprint("🧹 Data folder cleared and reset with default values");
+  }
+
   // Load user configuration if it exists
   loadConfigFromFile(ns);
 
@@ -28,12 +46,15 @@ export async function main(ns) {
     maxTargetAge: getConfig("processes.maxTargetAge"),
     fileCopyInterval: getConfig("processes.fileCopyInterval"),
   };
-
   // Initialize script and process management
   const { processMonitor, coordinator } = await initializeSystem(ns, CONFIG);
 
   ns.tprint("==== Dynamic Resource Allocation Hacking System (v2.0) ====");
-  ns.tprint("✅ System initialized with process health monitoring");
+  if (shouldClearData) {
+    ns.tprint("🔄 System initialized with FRESH DATA");
+  } else {
+    ns.tprint("✅ System initialized with process health monitoring");
+  }
 
   // Main coordination loop
   while (true) {

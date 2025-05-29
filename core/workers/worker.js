@@ -29,7 +29,12 @@ export async function main(ns) {
   const now = Date.now();
 
   if (now - lastActionTime < cooldownPeriod) {
-    ns.print(`⏳ Cooling down (${((cooldownPeriod - (now - lastActionTime))/1000).toFixed(1)}s remaining)`);
+    ns.print(
+      `⏳ Cooling down (${(
+        (cooldownPeriod - (now - lastActionTime)) /
+        1000
+      ).toFixed(1)}s remaining)`
+    );
     return;
   }
 
@@ -46,17 +51,21 @@ export async function main(ns) {
   ns.print(`⏳ Starting ${action} on ${target} with ${threads} threads`);
   try {
     // Check if we should use direct operation scripts instead for RAM efficiency
-    const availableRam = ns.getServerMaxRam(ns.getHostname()) - ns.getServerUsedRam(ns.getHostname());
+    const availableRam =
+      ns.getServerMaxRam(ns.getHostname()) -
+      ns.getServerUsedRam(ns.getHostname());
     const workerRam = ns.getScriptRam("/core/workers/worker.js");
     const operationRam = ns.getScriptRam(`/core/operations/${action}.js`);
-    
+
     // For very tight RAM situations, consider using operation scripts directly
-    const useDirectScript = taskInfo.useDirectScripts || (availableRam < workerRam && availableRam >= operationRam);
-    
+    const useDirectScript =
+      taskInfo.useDirectScripts ||
+      (availableRam < workerRam && availableRam >= operationRam);
+
     // Track retry attempts for error resilience
     const maxRetries = taskInfo.maxRetries || 3;
     const retryCount = taskInfo.retryCount || 0;
-    
+
     // Execute the appropriate action
     let result = 0;
 
@@ -94,28 +103,28 @@ export async function main(ns) {
           4
         )} in ${executionTime.toFixed(2)}s`
       );
-    }    // Adaptive chaining for small and medium servers
+    } // Adaptive chaining for small and medium servers
     // Use thresholds from task parameters or fall back to defaults
     const growthThreshold = taskInfo.growthThreshold || 0.75;
     const securityThreshold = taskInfo.securityThreshold || 5;
-    
+
     // Get server size category - small servers benefit most from chaining
     const serverRam = ns.getServerMaxRam(ns.getHostname());
     const isSmallServer = serverRam <= 32; // Works for servers up to 32GB
     const canChain = isSmallServer || taskInfo.enableChaining;
-    
+
     // Get current server status for intelligent chaining
     const currentSecurity = ns.getServerSecurityLevel(target);
     const minSecurity = ns.getServerMinSecurityLevel(target);
     const currentMoney = ns.getServerMoneyAvailable(target);
     const maxMoney = ns.getServerMaxMoney(target);
-    
+
     // Calculate what the server needs now
     const securityDiff = currentSecurity - minSecurity;
     const moneyPercent = maxMoney > 0 ? (currentMoney / maxMoney) * 100 : 0;
     const needsWeaken = securityDiff > securityThreshold;
     const needsGrow = currentMoney < maxMoney * growthThreshold;
-    
+
     // Only chain operations if it makes sense for this server size
     if (canChain && ns.getServerUsedRam(ns.getHostname()) > 0) {
       // Intelligently choose next action based on server state
@@ -128,12 +137,16 @@ export async function main(ns) {
           "grow",
           threads,
           JSON.stringify({
-            ...taskInfo, 
+            ...taskInfo,
             lastActionTime: now,
-            previousAction: "weaken" 
+            previousAction: "weaken",
           })
         );
-        ns.print(`🔄 Chaining to grow operation (server money at ${moneyPercent.toFixed(1)}%)`);
+        ns.print(
+          `🔄 Chaining to grow operation (server money at ${moneyPercent.toFixed(
+            1
+          )}%)`
+        );
       } else if (action === "grow") {
         // After grow, always weaken to counter security increase
         ns.spawn(
@@ -143,12 +156,16 @@ export async function main(ns) {
           "weaken",
           threads,
           JSON.stringify({
-            ...taskInfo, 
+            ...taskInfo,
             lastActionTime: now,
-            previousAction: "grow"
+            previousAction: "grow",
           })
         );
-        ns.print(`🔄 Chaining to weaken operation (security +${securityDiff.toFixed(2)})`);
+        ns.print(
+          `🔄 Chaining to weaken operation (security +${securityDiff.toFixed(
+            2
+          )})`
+        );
       } else if (action === "hack" && (needsWeaken || needsGrow)) {
         // After hack, determine what the server needs most
         const nextAction = needsWeaken ? "weaken" : "grow";
@@ -159,37 +176,40 @@ export async function main(ns) {
           nextAction,
           threads,
           JSON.stringify({
-            ...taskInfo, 
+            ...taskInfo,
             lastActionTime: now,
-            previousAction: "hack"
+            previousAction: "hack",
           })
         );
         ns.print(`🔄 Chaining to ${nextAction} operation after hack`);
       }
       // Otherwise let resource manager decide the next action
-    }  } catch (error) {
+    }
+  } catch (error) {
     // Log failure
     ns.print(`❌ Error ${action} on ${target}: ${error.toString()}`);
-    
+
     // Implement retry mechanism for resilience
     if (retryCount < maxRetries) {
-      ns.print(`⚠️ Retry ${retryCount+1}/${maxRetries} for ${action} on ${target}`);
+      ns.print(
+        `⚠️ Retry ${retryCount + 1}/${maxRetries} for ${action} on ${target}`
+      );
       // Spawn a new instance with incremented retry count
       ns.spawn(
-        "/core/workers/worker.js", 
-        1, 
-        target, 
-        action, 
-        threads, 
+        "/core/workers/worker.js",
+        1,
+        target,
+        action,
+        threads,
         JSON.stringify({
-          ...taskInfo, 
+          ...taskInfo,
           retryCount: retryCount + 1,
-          lastActionTime: now
+          lastActionTime: now,
         })
       );
     }
   }
-  
+
   // Report metrics if tracking is enabled
   if (taskInfo.trackMetrics) {
     const metrics = {
@@ -197,7 +217,7 @@ export async function main(ns) {
       action,
       threads,
       executionTime: (Date.now() - startTime) / 1000,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
     // Store last few operations in global data for optimization analysis
     if (!global.workerMetrics) global.workerMetrics = [];
