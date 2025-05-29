@@ -7,13 +7,7 @@
 import { createProcessMonitor } from "/core/process/process-health.js";
 import { ProcessCoordinator } from "/core/process/coordination.js";
 
-import {
-  PROCESS_CONFIG,
-  RESOURCE_CONFIG,
-  DEBUG_CONFIG,
-  getConfig,
-  loadConfigFromFile,
-} from "./core/config/system-config.js";
+import { getConfig, loadConfigFromFile } from "./core/config/system-config.js";
 
 /** @param {NS} ns */
 export async function main(ns) {
