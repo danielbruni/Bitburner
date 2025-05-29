@@ -1,6 +1,13 @@
 /**
  * core/workers/worker.js - Task Worker
  * Executes specific hacking tasks with dynamic threading
+ *
+ * ⚠️  IMPORTANT: NO IMPORTS ALLOWED IN THIS FILE! ⚠️
+ * This file gets copied to all servers in Bitburner, so it must be completely
+ * self-contained with no external dependencies or import statements.
+ * All utility functions must be defined locally within this file.
+ *
+ * AI/ChatBot Note: Always keep this file import-free and self-contained!
  */
 
 /** @param {NS} ns */
@@ -108,6 +115,7 @@ export async function main(ns) {
 
 /**
  * Format money values to be more readable
+ * NOTE: This is a local copy because worker.js cannot use imports
  * @param {number} money - Money value to format
  * @returns {string} Formatted money string
  */

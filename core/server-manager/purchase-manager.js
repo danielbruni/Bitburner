@@ -2,7 +2,8 @@
  * purchase-manager.js - Handles buying and upgrading servers
  */
 
-import { getMaxAffordableRam, formatMoney } from "./utils.js";
+import { getMaxAffordableRam } from "./utils.js";
+import { formatMoney } from "../utils/common.js";
 
 /**
  * Purchase and manage owned servers

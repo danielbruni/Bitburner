@@ -7,6 +7,7 @@ import {
   getWorkerStats,
   formatWorkerStats,
 } from "./core/debug/worker-utils.js";
+import { formatMoney } from "./core/utils/common.js";
 
 /** @param {NS} ns */
 export async function main(ns) {
@@ -171,15 +172,4 @@ function showHelp(ns) {
   ns.tprint("  run debug-runner.js monitor");
   ns.tprint("");
   ns.tprint("💡 Start with 'quick' for fast problem identification");
-}
-
-/**
- * Format money for display
- */
-function formatMoney(money) {
-  if (money >= 1e12) return `${(money / 1e12).toFixed(2)}t`;
-  if (money >= 1e9) return `${(money / 1e9).toFixed(2)}b`;
-  if (money >= 1e6) return `${(money / 1e6).toFixed(2)}m`;
-  if (money >= 1e3) return `${(money / 1e3).toFixed(2)}k`;
-  return `${money.toFixed(2)}`;
 }

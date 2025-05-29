@@ -3,7 +3,7 @@
  * Analyzes why the hacking system isn't generating money
  */
 
-import { formatMoney } from "../resource-manager/utils.js";
+import { formatMoney, formatBytes } from "../utils/common.js";
 
 /** @param {NS} ns */
 export async function main(ns) {
@@ -453,14 +453,4 @@ function getAllWorkerCount(ns) {
   }
 
   return totalWorkers;
-}
-
-/**
- * Format bytes for display
- */
-function formatBytes(bytes) {
-  const sizes = ["B", "KB", "MB", "GB", "TB"];
-  if (bytes === 0) return "0 B";
-  const i = Math.floor(Math.log(bytes) / Math.log(1024));
-  return Math.round((bytes / Math.pow(1024, i)) * 100) / 100 + " " + sizes[i];
 }

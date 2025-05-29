@@ -3,7 +3,7 @@
  * Tracks what workers are doing and their effectiveness
  */
 
-import { formatMoney } from "../resource-manager/utils.js";
+import { formatMoney } from "../utils/common.js";
 import { getWorkerStats, formatWorkerStats } from "./worker-utils.js";
 
 /** @param {NS} ns */

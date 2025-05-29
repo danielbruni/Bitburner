@@ -2,6 +2,8 @@
  * utils.js - Utility functions for the resource manager
  */
 
+import { formatMoney } from "../utils/common.js";
+
 /**
  * Clean up stale worker assignments
  * @param {NS} ns - NetScript API
@@ -49,17 +51,4 @@ export function outputStatus(ns, tasks, taskData) {
         `Security: ${securityStatus}/${task.security.min.toFixed(2)}`
     );
   }
-}
-
-/**
- * Format money values to be more readable
- * @param {number} money - Money value to format
- * @returns {string} Formatted money string
- */
-export function formatMoney(money) {
-  if (money >= 1e12) return `${(money / 1e12).toFixed(2)}t`;
-  if (money >= 1e9) return `${(money / 1e9).toFixed(2)}b`;
-  if (money >= 1e6) return `${(money / 1e6).toFixed(2)}m`;
-  if (money >= 1e3) return `${(money / 1e3).toFixed(2)}k`;
-  return `${money.toFixed(2)}`;
 }
