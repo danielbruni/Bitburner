@@ -4,6 +4,7 @@
  */
 
 import { formatBytes } from "../utils/common.js";
+import { getWorkerStats } from "./worker-utils.js";
 
 /** @param {NS} ns */
 export async function main(ns) {
@@ -45,10 +46,11 @@ export async function main(ns) {
   } else {
     ns.tprint("✅ Resource manager is running");
   }
-
   // Check 3: Active workers
-  const workerCount = countActiveWorkers(ns);
-  if (workerCount === 0) {
+  const workerStats = getWorkerStats(ns);
+  const totalWorkers = workerStats.hack + workerStats.grow + workerStats.weaken;
+
+  if (totalWorkers === 0) {
     issues.push({
       level: "CRITICAL",
       problem: "No workers are currently active",
@@ -56,7 +58,9 @@ export async function main(ns) {
       fix: null,
     });
   } else {
-    ns.tprint(`✅ ${workerCount} workers are active`);
+    ns.tprint(
+      `✅ ${totalWorkers} workers active (${workerStats.hack} hack, ${workerStats.grow} grow, ${workerStats.weaken} weaken)`
+    );
   }
 
   // Check 4: Server files
@@ -191,7 +195,6 @@ export async function main(ns) {
     }
     ns.tprint("");
   }
-
   if (autoFix) {
     ns.tprint(
       "🔄 Auto-fixes applied. Wait 10 seconds then check status again."
@@ -199,25 +202,4 @@ export async function main(ns) {
   } else {
     ns.tprint("💡 To attempt automatic fixes, run: run system-health.js fix");
   }
-}
-
-/**
- * Count active workers across all servers
- */
-function countActiveWorkers(ns) {
-  const allServers = [...ns.getPurchasedServers(), "home"];
-  let count = 0;
-
-  for (const server of allServers) {
-    try {
-      const processes = ns.ps(server);
-      count += processes.filter(
-        (p) => p.filename === "/core/workers/worker.js"
-      ).length;
-    } catch (e) {
-      // Server might not be accessible
-    }
-  }
-
-  return count;
 }

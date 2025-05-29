@@ -1,7 +1,11 @@
 /**
  * main.js - Dynamic Resource Allocation Hacking System
  * A more flexible approach than batches that maximizes resource utilization
+ * Now with proper process management and health monitoring
  */
+
+import { createProcessMonitor } from "/core/process/process-health.js";
+import { ProcessCoordinator } from "/core/process/coordination.js";
 
 /** @param {NS} ns */
 export async function main(ns) {
@@ -14,42 +18,52 @@ export async function main(ns) {
     moneyThreshold: 0.75, // Hack when server has this much money (75%)
     securityThreshold: 5, // Extra security above minimum to tolerate
     logLevel: 1, // 0: minimal, 1: normal, 2: verbose
+    healthCheckInterval: 5000, // How often to check process health (ms)
+    maxDataAge: 10000, // Max age for server data before refresh (ms)
+    maxTargetAge: 60000, // Max age for target data before refresh (ms)
+    fileCopyInterval: 300000, // How often to copy files to servers (ms)
   };
 
-  // Initialize script
-  initializeScript(ns, CONFIG);
+  // Initialize script and process management
+  const { processMonitor, coordinator } = await initializeSystem(ns, CONFIG);
 
-  // Main loop
+  ns.tprint("==== Dynamic Resource Allocation Hacking System (v2.0) ====");
+  ns.tprint("✅ System initialized with process health monitoring");
+
+  // Main coordination loop
   while (true) {
     try {
-      // Update list of available servers and targets
-      const { availableServers, targetServers } = await updateServerLists(
-        ns,
-        CONFIG
-      );
+      // Check and maintain process health
+      await maintainProcessHealth(ns, processMonitor, coordinator, CONFIG);
 
-      // Copy essential files to all servers first to ensure they're ready
-      await copyFilesToAvailableServers(ns, availableServers);
+      // Handle data refresh coordination
+      await coordinateDataRefresh(ns, coordinator, CONFIG);
 
-      // Deploy resource manager to coordinate tasks
-      await deployResourceManager(ns, availableServers, targetServers, CONFIG);
+      // Handle file copying coordination
+      await coordinateFileCopying(ns, coordinator, CONFIG);
 
-      // Wait for next cycle
-      await ns.sleep(CONFIG.targetUpdateInterval);
+      // Output system status
+      outputSystemStatus(ns, processMonitor, coordinator);
+
+      // Wait before next health check
+      await ns.sleep(CONFIG.healthCheckInterval);
     } catch (error) {
-      ns.print(`ERROR: ${error.toString()}`);
+      ns.print(`ERROR in main loop: ${error.toString()}`);
       await ns.sleep(5000);
     }
   }
 }
 
 /**
- * Initialize script and check for necessary dependencies
+ * Initialize system with process monitoring and coordination
  * @param {NS} ns - NetScript API
  * @param {Object} config - Script configuration
+ * @returns {Object} Object containing processMonitor and coordinator
  */
-function initializeScript(ns, config) {
-  ns.disableLog("ALL"); // Required scripts
+async function initializeSystem(ns, config) {
+  ns.disableLog("ALL");
+
+  // Required scripts check
   const requiredScripts = [
     "/core/server-manager/index.js",
     "/core/resource-manager/index.js",
@@ -59,13 +73,10 @@ function initializeScript(ns, config) {
     "/core/operations/weaken.js",
   ];
 
-  // Check if all required scripts exist
   ns.print("🔍 Checking required scripts...");
-
   let allScriptsExist = true;
   for (const script of requiredScripts) {
-    const exists = ns.fileExists(script);
-    if (!exists) {
+    if (!ns.fileExists(script)) {
       ns.tprint(`❌ Missing required script: ${script}`);
       allScriptsExist = false;
     }
@@ -78,90 +89,175 @@ function initializeScript(ns, config) {
     ns.exit();
   }
 
-  // Display startup message
-  ns.tprint("==== Dynamic Resource Allocation Hacking System ====");
-  ns.tprint("Initializing system...");
+  // Create data directory structure
+  ensureDataDirectories(ns);
+
+  // Initialize process monitor and coordinator
+  const processMonitor = createProcessMonitor(ns, config);
+  const coordinator = new ProcessCoordinator(ns);
+
+  // Start core processes
+  await processMonitor.ensureAllRunning();
+
+  return { processMonitor, coordinator };
 }
 
 /**
- * Update lists of available and target servers
+ * Ensure data directories exist
  * @param {NS} ns - NetScript API
- * @param {Object} config - Script configuration
- * @returns {Object} Object containing available and target servers
  */
-async function updateServerLists(ns, config) {
-  // Run server manager to get available servers
-  if (ns.scriptRunning("/core/server-manager/index.js", "home")) {
-    ns.scriptKill("/core/server-manager/index.js", "home");
+function ensureDataDirectories(ns) {
+  const defaultServerData = JSON.stringify({ available: [], targets: [] });
+  const defaultTargetData = JSON.stringify({ targets: [] });
+
+  if (!ns.fileExists("/data/servers.json")) {
+    ns.write("/data/servers.json", defaultServerData, "w");
   }
-
-  ns.exec(
-    "/core/server-manager/index.js",
-    "home",
-    1,
-    config.shouldUpgradeServers,
-    config.homeReservedRam
-  );
-  await ns.sleep(500); // Give it time to run
-
-  // Read results from server manager
-  const serverData = JSON.parse(ns.read("/data/servers.json"));
-  const availableServers = serverData.available || [];
-
-  // Find suitable target servers
-  const targetData = JSON.parse(ns.read("/data/targets.json"));
-  const targetServers = targetData.targets || [];
-
-  return { availableServers, targetServers };
+  if (!ns.fileExists("/data/targets.json")) {
+    ns.write("/data/targets.json", defaultTargetData, "w");
+  }
 }
 
 /**
- * Deploy resource manager to coordinate tasks
+ * Maintain health of all system processes
  * @param {NS} ns - NetScript API
- * @param {Array} availableServers - List of available servers
- * @param {Array} targetServers - List of target servers
- * @param {Object} config - Script configuration
+ * @param {ProcessHealthMonitor} processMonitor - Process monitor
+ * @param {ProcessCoordinator} coordinator - Process coordinator
+ * @param {Object} config - System configuration
  */
-async function deployResourceManager(
-  ns,
-  availableServers,
-  targetServers,
-  config
-) {
-  // Kill any existing resource manager
-  if (ns.scriptRunning("/core/resource-manager/index.js", "home")) {
-    ns.scriptKill("/core/resource-manager/index.js", "home");
-  }
+async function maintainProcessHealth(ns, processMonitor, coordinator, config) {
+  const healthStatus = await processMonitor.checkHealth();
 
-  // Start resource manager
-  const pid = ns.exec(
-    "/core/resource-manager/index.js",
-    "home",
-    1,
-    JSON.stringify(config),
-    config.moneyThreshold,
-    config.securityThreshold,
-    config.homeReservedRam
-  );
+  // If any critical processes are down, restart them
+  if (healthStatus.stopped > 0) {
+    ns.print(
+      `⚠️ ${healthStatus.stopped} processes stopped, attempting restart...`
+    );
 
-  if (pid === 0) {
-    ns.tprint("❌ Failed to start resource manager!");
-  } else {
-    ns.print("✅ Resource manager started successfully");
+    // Restart server manager if needed
+    if (!ns.scriptRunning("/core/server-manager/index.js", "home")) {
+      await processMonitor.restartProcess(
+        "/core/server-manager/index.js",
+        "home"
+      );
+      coordinator.sendMessage("server_manager_restarted", {
+        reason: "Process stopped",
+      });
+    }
+
+    // Restart resource manager if needed
+    if (!ns.scriptRunning("/core/resource-manager/index.js", "home")) {
+      await processMonitor.restartProcess(
+        "/core/resource-manager/index.js",
+        "home"
+      );
+      coordinator.sendMessage("resource_manager_restarted", {
+        reason: "Process stopped",
+      });
+    }
   }
 }
 
 /**
- * Deploy resource manager to coordinate tasks
+ * Coordinate data refresh based on staleness and process coordination
+ * @param {NS} ns - NetScript API
+ * @param {ProcessCoordinator} coordinator - Process coordinator
+ * @param {Object} config - System configuration
+ */
+async function coordinateDataRefresh(ns, coordinator, config) {
+  // Check if we need to refresh server data
+  if (coordinator.isServerDataStale(config.maxDataAge)) {
+    ns.print("🔄 Server data is stale, triggering refresh...");
+
+    // Signal server manager to refresh if it's running
+    if (ns.scriptRunning("/core/server-manager/index.js", "home")) {
+      coordinator.sendMessage("refresh_server_data", {
+        reason: "Data stale",
+        maxAge: config.maxDataAge,
+      });
+    } else {
+      // If server manager isn't running, we need to run it once
+      const pid = ns.exec(
+        "/core/server-manager/index.js",
+        "home",
+        1,
+        config.shouldUpgradeServers,
+        config.homeReservedRam
+      );
+      if (pid > 0) {
+        await ns.sleep(500); // Give it time to complete
+        coordinator.markServerDataRefreshed();
+      }
+    }
+  }
+
+  // Target data refresh is handled by the resource manager internally
+  // We just track when it was last updated
+  if (coordinator.isTargetDataStale(config.maxTargetAge)) {
+    coordinator.requestTargetRefreshIfNeeded(config.maxTargetAge);
+  }
+}
+
+/**
+ * Coordinate file copying to servers
+ * @param {NS} ns - NetScript API
+ * @param {ProcessCoordinator} coordinator - Process coordinator
+ * @param {Object} config - System configuration
+ */
+async function coordinateFileCopying(ns, coordinator, config) {
+  // Only copy files periodically or when servers are refreshed
+  if (!coordinator.areFilesFresh(config.fileCopyInterval)) {
+    const serverData = JSON.parse(
+      ns.read("/data/servers.json") || '{"available":[]}'
+    );
+    const availableServers = serverData.available || [];
+
+    if (availableServers.length > 0) {
+      await copyFilesToAvailableServers(ns, availableServers);
+      coordinator.markFilesCopied();
+      ns.print(`📁 Files copied to ${availableServers.length} servers`);
+    }
+  }
+}
+
+/**
+ * Output system status information
+ * @param {NS} ns - NetScript API
+ * @param {ProcessHealthMonitor} processMonitor - Process monitor
+ * @param {ProcessCoordinator} coordinator - Process coordinator
+ */
+function outputSystemStatus(ns, processMonitor, coordinator) {
+  const healthSummary = processMonitor.getHealthSummary();
+  const statusSummary = coordinator.getStatusSummary();
+
+  // Only output status every 30 seconds to avoid spam
+  const now = Date.now();
+  if (
+    !outputSystemStatus.lastOutput ||
+    now - outputSystemStatus.lastOutput > 30000
+  ) {
+    ns.print(
+      `📊 System Status - Uptime: ${statusSummary.uptime}s | ` +
+        `Processes: ${healthSummary.healthy}✅ ${healthSummary.stopped}⛔ | ` +
+        `Data Age: S:${statusSummary.serverDataAge}s T:${statusSummary.targetDataAge}s`
+    );
+    outputSystemStatus.lastOutput = now;
+  }
+}
+
+/**
+ * Copy essential files to available servers (only when needed)
  * @param {NS} ns - NetScript API
  * @param {Array} availableServers - List of available servers
  */
 async function copyFilesToAvailableServers(ns, availableServers) {
   // Filter out home server
   const servers = availableServers.filter((s) => s.name !== "home") || [];
-  ns.print(
-    `🔄 Copying essential files to ${servers.length} purchased servers...`
-  );
+
+  if (servers.length === 0) {
+    return;
+  }
+
   // Files to copy
   const filesToCopy = [
     "/core/workers/worker.js",
@@ -170,18 +266,26 @@ async function copyFilesToAvailableServers(ns, availableServers) {
     "/core/operations/weaken.js",
   ];
 
-  // Copy to each server
+  // Copy to each server efficiently
   for (const server of servers) {
-    ns.print("Copy files to server: " + server.name);
     try {
-      // Copy files if they don't exist
+      // Check which files need copying
+      const filesToUpdate = [];
       for (const file of filesToCopy) {
         if (!ns.fileExists(file, server.name)) {
-          ns.scp(file, server.name, "home");
+          filesToUpdate.push(file);
         }
       }
+
+      // Only copy if files are missing
+      if (filesToUpdate.length > 0) {
+        for (const file of filesToUpdate) {
+          ns.scp(file, server.name, "home");
+        }
+        ns.print(`📁 Copied ${filesToUpdate.length} files to ${server.name}`);
+      }
     } catch (error) {
-      ns.print(`Error copying files to ${server.name}: ${error}`);
+      ns.print(`❌ Error copying files to ${server.name}: ${error}`);
     }
   }
 }
