@@ -82,44 +82,12 @@ export const SYSTEM_CONFIG = {
     defaultNewServerRam: 8, // Default RAM for new servers (GB)
   },
 
-  // ======== TASK BALANCING ========
-  taskBalancing: {
-    weakenRatio: 0.3, // Ideal ratio of weaken tasks
-    growRatio: 0.4, // Ideal ratio of grow tasks
-    hackRatio: 0.3, // Ideal ratio of hack tasks
-    priorityWeights: {
-      money: 0.4, // Weight for money potential
-      security: 0.3, // Weight for security level
-      hackingLevel: 0.2, // Weight for required hacking level
-      growth: 0.1, // Weight for growth factor
-    },
-  },
-
   // ======== FILE PATHS ========
   files: {
     serversDataFile: "/data/servers.json",
     targetsDataFile: "/data/targets.json",
     processHealthFile: "/data/process-health.json",
     userConfigFile: "/data/user-config.json",
-  },
-
-  // ======== FILE PATHS (Legacy - for compatibility) ========
-  paths: {
-    serverData: "/data/servers.json",
-    targetData: "/data/targets.json",
-    workerScript: "/core/workers/worker.js",
-    serverManager: "/core/server-manager/index.js",
-    resourceManager: "/core/resource-manager/index.js",
-    mainScript: "/main.js",
-  },
-
-  // ======== SAFETY LIMITS ========
-  limits: {
-    maxRestartAttempts: 3, // Max process restart attempts before giving up
-    maxMemoryUsage: 0.95, // Max memory usage before warning (95%)
-    minFreeRam: 1, // Minimum free RAM to maintain (GB)
-    maxProcessAge: 3600000, // Max age for processes before restart (ms)
-    emergencyStopThreshold: 0.98, // Stop all operations if RAM usage exceeds this
   },
 };
 

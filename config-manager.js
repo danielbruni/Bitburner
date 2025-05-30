@@ -191,7 +191,7 @@ function showHelp(ns) {
   ns.tprint("Configuration Categories:");
   ns.tprint("  processes, resources, serverCategories, workers,");
   ns.tprint("  debug, optimization, factions, serverManagement,");
-  ns.tprint("  taskBalancing, paths, limits");
+  ns.tprint("  paths, limits");
 }
 
 /**
