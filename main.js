@@ -269,6 +269,76 @@ async function coordinateDataRefresh(ns, coordinator, config) {
   if (coordinator.isServerDataStale(config.maxDataAge)) {
     ns.print("🔄 Server data is stale, triggering refresh...");
 
+    // Check RAM availability before attempting to start server manager
+    const serverManagerRam = ns.getScriptRam("/core/server-manager/index.js");
+    const homeMaxRam = ns.getServerMaxRam("home");
+    const homeUsedRam = ns.getServerUsedRam("home");
+    const homeAvailableRam = homeMaxRam - homeUsedRam;
+
+    if (homeAvailableRam < serverManagerRam) {
+      timestampedPrint(
+        ns,
+        `❌ Cannot start server manager: Need ${serverManagerRam}GB RAM, only ${homeAvailableRam.toFixed(
+          2
+        )}GB available`
+      );
+
+      // Try to free up some RAM by killing less critical scripts
+      const runningScripts = ns.ps("home");
+      let freedRam = 0;
+
+      for (const script of runningScripts) {
+        // Don't kill main.js or resource manager, but consider killing other scripts
+        if (
+          script.filename !== "/main.js" &&
+          script.filename !== "/core/resource-manager/index.js" &&
+          script.filename !== "/core/server-manager/index.js"
+        ) {
+          const scriptRam = ns.getScriptRam(script.filename) * script.threads;
+          if (scriptRam > 0.5) {
+            // Only kill scripts using significant RAM
+            ns.kill(script.filename, "home", ...script.args);
+            freedRam += scriptRam;
+            ns.print(
+              `🧹 Killed ${script.filename} to free ${scriptRam.toFixed(
+                2
+              )}GB RAM`
+            );
+
+            // Check if we've freed enough RAM
+            if (freedRam >= serverManagerRam) {
+              await ns.sleep(100); // Give system time to update RAM usage
+              break;
+            }
+          }
+        }
+      }
+
+      // Recheck RAM availability after cleanup
+      const newAvailableRam =
+        ns.getServerMaxRam("home") - ns.getServerUsedRam("home");
+      if (newAvailableRam < serverManagerRam) {
+        timestampedPrint(
+          ns,
+          `⚠️ Still insufficient RAM after cleanup: ${newAvailableRam.toFixed(
+            2
+          )}GB available, need ${serverManagerRam}GB`
+        );
+        timestampedPrint(
+          ns,
+          "💡 Consider: 1) Reducing homeReservedRam, 2) Upgrading home server, 3) Optimizing script usage"
+        );
+        return; // Skip this refresh cycle
+      } else {
+        timestampedPrint(
+          ns,
+          `✅ Freed ${freedRam.toFixed(
+            2
+          )}GB RAM, proceeding with server manager`
+        );
+      }
+    }
+
     // Run server manager once
     const pid = ns.exec(
       "/core/server-manager/index.js",
@@ -277,6 +347,7 @@ async function coordinateDataRefresh(ns, coordinator, config) {
       config.shouldUpgradeServers,
       config.homeReservedRam
     );
+
     if (pid > 0) {
       // Wait for server manager to complete
       let attempts = 0;
@@ -295,7 +366,19 @@ async function coordinateDataRefresh(ns, coordinator, config) {
         timestampedPrint(ns, "⚠️ Server manager refresh timed out");
       }
     } else {
-      timestampedPrint(ns, "❌ Failed to start server manager");
+      // Even after RAM checks, server manager failed to start
+      const finalAvailableRam =
+        ns.getServerMaxRam("home") - ns.getServerUsedRam("home");
+      timestampedPrint(
+        ns,
+        `❌ Server manager failed to start despite RAM check (${finalAvailableRam.toFixed(
+          2
+        )}GB available)`
+      );
+      timestampedPrint(
+        ns,
+        "🔧 This may indicate a deeper issue - check server manager script integrity"
+      );
     }
   }
 

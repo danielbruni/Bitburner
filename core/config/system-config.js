@@ -25,7 +25,7 @@ export const SYSTEM_CONFIG = {
 
   // ======== RESOURCE ALLOCATION ========
   resources: {
-    homeReservedRam: 20, // GB of RAM to reserve on home server
+    homeReservedRam: 25, // GB of RAM to reserve on home server
     moneyThreshold: 0.75, // Hack when server has this much money (75%)
     securityThreshold: 5, // Extra security above minimum to tolerate
     hackPercentPerCycle: 0.25, // Max percentage of money to hack per cycle
