@@ -4,8 +4,8 @@
  */
 
 import { MoneyTracker } from "/core/process/money-tracker.js";
-import { StrategyCoordinator } from "/core/process/strategy-coordinator.js";
-import { getConfig } from "./core/config/system-config.js";
+import { createStrategyCoordinator } from "/core/process/strategy-coordinator.js";
+import { getConfig } from "../core/config/system-config.js";
 
 /** @param {NS} ns */
 export async function main(ns) {
@@ -18,7 +18,7 @@ export async function main(ns) {
     // Initialize systems
     ns.tprint("🔧 Initializing money tracker and strategy coordinator...");
     const moneyTracker = new MoneyTracker(ns);
-    const strategyCoordinator = new StrategyCoordinator(ns);
+    const strategyCoordinator = createStrategyCoordinator(ns);
 
     if (testType === "basic") {
       await testBasicFunctionality(ns, moneyTracker, strategyCoordinator);

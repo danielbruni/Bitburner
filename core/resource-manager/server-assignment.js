@@ -6,7 +6,7 @@ import {
   calculateLargeServerChunks,
   launchChunkedWorkers,
 } from "./large-server-optimization.js";
-import { StrategyCoordinator } from "../process/strategy-coordinator.js";
+import { createStrategyCoordinator } from "../process/strategy-coordinator.js";
 import { getConfig } from "../config/system-config.js";
 
 /**
@@ -92,7 +92,7 @@ export async function assignServersToTask(
   homeReservedRam = 10 // Default to 10GB if not specified
 ) {
   // Get current strategy for worker parameters
-  const strategyCoordinator = new StrategyCoordinator(ns);
+  const strategyCoordinator = createStrategyCoordinator(ns);
   const currentStrategy = strategyCoordinator.getCurrentStrategy();
   const enhancedTaskInfo = createStrategyEnhancedTaskInfo(
     task,

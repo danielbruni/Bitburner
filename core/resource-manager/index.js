@@ -7,7 +7,7 @@ import { prepareServers } from "./prepare-servers.js";
 import { prioritizeTasks } from "./task-prioritization.js";
 import { allocateResources } from "./resource-allocation.js";
 import { cleanupWorkers, outputStatus } from "./utils.js";
-import { StrategyCoordinator } from "../process/strategy-coordinator.js";
+import { createStrategyCoordinator } from "../process/strategy-coordinator.js";
 import {
   RESOURCE_CONFIG,
   getConfig,
@@ -32,9 +32,8 @@ export async function main(ns) {
   }
   // Disable logs
   ns.disableLog("ALL");
-
   // Initialize strategy coordinator
-  const strategyCoordinator = new StrategyCoordinator(ns);
+  const strategyCoordinator = createStrategyCoordinator(ns);
   let currentStrategy = strategyCoordinator.getCurrentStrategy();
 
   // Prepare servers with required scripts

@@ -383,6 +383,31 @@ export class MoneyTracker {
   }
 
   /**
+   * Handle strategy change notification
+   * @param {string} newStrategy - The new strategy that was applied
+   */
+  onStrategyChanged(newStrategy) {
+    // Update our internal strategy state if it differs
+    if (this.strategyState.currentStrategy !== newStrategy) {
+      this.strategyState.currentStrategy = newStrategy;
+      this.strategyState.lastStrategyChange = Date.now();
+      this.strategyState.strategyChangeReason = "external_change";
+      this.saveStrategyState();
+      this.ns.print(
+        `📝 MoneyTracker updated to track strategy: ${newStrategy}`
+      );
+    }
+  }
+
+  /**
+   * Check if strategy should be changed based on current performance
+   * @returns {boolean} True if strategy change is recommended
+   */
+  shouldChangeStrategy() {
+    const stagnation = this.checkStagnation();
+    return stagnation.needsStrategyChange;
+  }
+  /**
    * Get current tracking status
    * @returns {Object} Status summary
    */
@@ -393,12 +418,15 @@ export class MoneyTracker {
     return {
       currentMoney: this.ns.getPlayer().money,
       currentRate: this.trackingData.currentRate,
+      formattedCurrentRate: formatMoney(this.trackingData.currentRate || 0),
       averageRate: this.trackingData.averageRate,
       totalEarnings: this.trackingData.totalEarnings,
       uptime: Math.floor((now - this.trackingData.startTime) / 1000),
       samplesCollected: this.trackingData.samples.length,
       stagnation: stagnation,
+      isStagnant: stagnation.isStagnant,
       strategy: this.strategyState.currentStrategy,
+      currentStrategy: this.strategyState.currentStrategy,
       timeSinceStrategyChange: Math.floor(
         (now - this.strategyState.lastStrategyChange) / 1000
       ),

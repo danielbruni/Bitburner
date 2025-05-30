@@ -15,7 +15,7 @@ export const SYSTEM_CONFIG = {
     serverUpdateInterval: 10000, // How often to scan for new servers (ms)
     healthCheckInterval: 5000, // How often to check process health (ms)
     fileCopyInterval: 300000, // How often to copy files to servers (ms)
-    maxDataAge: 10000, // Max age for server data before refresh (ms)
+    maxDataAge: 60000, // Max age for server data before refresh (ms) - 1 minute
     maxTargetAge: 60000, // Max age for target data before refresh (ms)
     statusOutputInterval: 30000, // How often to output system status (ms)
     processRestartDelay: 500, // Delay after restarting a process (ms)

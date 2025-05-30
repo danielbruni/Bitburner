@@ -274,14 +274,15 @@ export class StrategyCoordinator {
   /**
    * Record applied strategy for history tracking
    * @param {Object} strategyData - Strategy data
-   */
-  recordAppliedStrategy(strategyData) {
+   */ recordAppliedStrategy(strategyData) {
     try {
       this.appliedStrategies.strategies.push({
         strategy: strategyData.strategy,
         reason: strategyData.reason,
         config: strategyData.config,
         appliedAt: Date.now(),
+        timestamp: strategyData.timestamp,
+        previousStrategy: this.currentStrategy,
         moneyAtApplication: this.ns.getPlayer().money,
       });
 
@@ -360,6 +361,108 @@ export class StrategyCoordinator {
     }
 
     return analysis;
+  }
+  /**
+   * Get current strategy
+   * @returns {string} Current strategy name
+   */
+  getCurrentStrategy() {
+    return this.currentStrategy;
+  }
+
+  /**
+   * Manually change strategy
+   * @param {string} newStrategy - The strategy to change to
+   * @param {string} reason - Reason for the change
+   * @returns {Object} Result object with success status and details
+   */
+  async changeStrategy(newStrategy, reason = "manual_change") {
+    try {
+      const validStrategies = [
+        "balanced",
+        "aggressive",
+        "conservative",
+        "emergency",
+      ];
+
+      if (!validStrategies.includes(newStrategy)) {
+        return {
+          success: false,
+          reason: `Invalid strategy: ${newStrategy}. Valid strategies: ${validStrategies.join(
+            ", "
+          )}`,
+        };
+      }
+
+      if (newStrategy === this.currentStrategy) {
+        return {
+          success: false,
+          reason: `Already using ${newStrategy} strategy`,
+        };
+      }
+
+      const oldStrategy = this.currentStrategy;
+
+      // Create strategy change data
+      const strategyData = {
+        strategy: newStrategy,
+        reason: reason,
+        timestamp: Date.now(),
+        config: this.getStrategyConfig(newStrategy),
+      };
+
+      // Write strategy change file for other components to pick up
+      this.ns.write(
+        this.strategyFile,
+        JSON.stringify(strategyData, null, 2),
+        "w"
+      );
+
+      // Apply the strategy change
+      this.applyStrategyChange(strategyData);
+      this.currentStrategy = newStrategy;
+
+      // Record the applied strategy
+      this.recordAppliedStrategy(strategyData);
+
+      this.ns.print(
+        `🎯 Strategy changed: ${oldStrategy} → ${newStrategy} (${reason})`
+      );
+
+      return {
+        success: true,
+        oldStrategy: oldStrategy,
+        newStrategy: newStrategy,
+        reason: reason,
+        timestamp: strategyData.timestamp,
+      };
+    } catch (error) {
+      this.ns.print(`❌ Error changing strategy: ${error}`);
+      return {
+        success: false,
+        reason: `Error: ${error.message}`,
+      };
+    }
+  }
+
+  /**
+   * Get strategy change history
+   * @returns {Array} Array of strategy change records
+   */
+  getStrategyHistory() {
+    try {
+      const appliedStrategies = this.loadAppliedStrategies();
+      return appliedStrategies.strategies.map((strategy) => ({
+        timestamp: strategy.timestamp,
+        from: strategy.previousStrategy || "unknown",
+        to: strategy.strategy,
+        reason: strategy.reason,
+        config: strategy.config,
+      }));
+    } catch (error) {
+      this.ns.print(`❌ Error loading strategy history: ${error}`);
+      return [];
+    }
   }
 
   /**

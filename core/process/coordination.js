@@ -71,22 +71,24 @@ export class ProcessCoordinator {
       this.ns.print(`ERROR saving system state: ${error}`);
     }
   }
-
   /**
    * Check if server data needs refreshing
    * @param {number} maxAge - Maximum age in milliseconds
    * @returns {boolean} True if data is stale
    */
   isServerDataStale(maxAge = 10000) {
+    // Reload state to get latest data from file
+    this.state = this.loadState();
     return Date.now() - this.state.lastServerScan > maxAge;
   }
-
   /**
    * Check if target data needs refreshing
    * @param {number} maxAge - Maximum age in milliseconds
    * @returns {boolean} True if data is stale
    */
   isTargetDataStale(maxAge = 60000) {
+    // Reload state to get latest data from file
+    this.state = this.loadState();
     return Date.now() - this.state.lastTargetUpdate > maxAge;
   }
 

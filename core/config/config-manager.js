@@ -13,7 +13,7 @@ import {
   getConfigSummary,
   loadConfigFromFile,
   saveConfigToFile,
-} from "./core/config/system-config.js";
+} from "./system-config.js";
 
 /** @param {NS} ns */
 export async function main(ns) {

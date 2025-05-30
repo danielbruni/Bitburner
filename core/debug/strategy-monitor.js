@@ -4,7 +4,7 @@
  */
 
 import { MoneyTracker } from "/core/process/money-tracker.js";
-import { StrategyCoordinator } from "/core/process/strategy-coordinator.js";
+import { createStrategyCoordinator } from "/core/process/strategy-coordinator.js";
 import { formatMoney } from "./core/utils/common.js";
 
 /** @param {NS} ns */
@@ -13,10 +13,9 @@ export async function main(ns) {
 
   ns.disableLog("ALL");
   ns.ui.openTail();
-
   // Initialize systems
   const moneyTracker = new MoneyTracker(ns);
-  const strategyCoordinator = new StrategyCoordinator(ns);
+  const strategyCoordinator = createStrategyCoordinator(ns);
 
   let lastMoney = ns.getServerMoneyAvailable("home");
   let cycleCount = 0;

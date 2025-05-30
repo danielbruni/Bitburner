@@ -11,7 +11,7 @@
 import { createProcessMonitor } from "/core/process/process-health.js";
 import { ProcessCoordinator } from "/core/process/coordination.js";
 import { MoneyTracker } from "/core/process/money-tracker.js";
-import { StrategyCoordinator } from "/core/process/strategy-coordinator.js";
+import { createStrategyCoordinator } from "/core/process/strategy-coordinator.js";
 
 import { getConfig, loadConfigFromFile } from "./core/config/system-config.js";
 import { clearDataFolder } from "./core/utils/data.js";
@@ -127,10 +127,9 @@ async function initializeSystem(ns, config) {
   // Initialize process monitor and coordinator
   const processMonitor = createProcessMonitor(ns, config);
   const coordinator = new ProcessCoordinator(ns);
-
   // Initialize money tracking and strategy coordination
   const moneyTracker = new MoneyTracker(ns);
-  const strategyCoordinator = new StrategyCoordinator(ns);
+  const strategyCoordinator = createStrategyCoordinator(ns);
 
   // Start core processes
   await processMonitor.ensureAllRunning();
@@ -259,29 +258,43 @@ async function handleMoneyTrackingAndStrategy(
  * @param {Object} config - System configuration
  */
 async function coordinateDataRefresh(ns, coordinator, config) {
+  // Check if server manager is already running
+  if (ns.scriptRunning("/core/server-manager/index.js", "home")) {
+    // Server manager is already running, don't trigger another one
+    return;
+  }
+
   // Check if we need to refresh server data
   if (coordinator.isServerDataStale(config.maxDataAge)) {
     ns.print("🔄 Server data is stale, triggering refresh...");
 
-    // Signal server manager to refresh if it's running
-    if (ns.scriptRunning("/core/server-manager/index.js", "home")) {
-      coordinator.sendMessage("refresh_server_data", {
-        reason: "Data stale",
-        maxAge: config.maxDataAge,
-      });
-    } else {
-      // If server manager isn't running, we need to run it once
-      const pid = ns.exec(
-        "/core/server-manager/index.js",
-        "home",
-        1,
-        config.shouldUpgradeServers,
-        config.homeReservedRam
-      );
-      if (pid > 0) {
-        await ns.sleep(500); // Give it time to complete
-        coordinator.markServerDataRefreshed();
+    // Run server manager once
+    const pid = ns.exec(
+      "/core/server-manager/index.js",
+      "home",
+      1,
+      config.shouldUpgradeServers,
+      config.homeReservedRam
+    );
+    if (pid > 0) {
+      // Wait for server manager to complete
+      let attempts = 0;
+      const maxAttempts = 20; // 10 seconds max wait
+      while (ns.isRunning(pid) && attempts < maxAttempts) {
+        await ns.sleep(500);
+        attempts++;
       }
+
+      if (attempts < maxAttempts) {
+        // Server manager completed successfully
+        coordinator.markServerDataRefreshed();
+        ns.print("✅ Server manager refresh completed");
+      } else {
+        // Server manager took too long or failed
+        ns.print("⚠️ Server manager refresh timed out");
+      }
+    } else {
+      ns.print("❌ Failed to start server manager");
     }
   }
 
