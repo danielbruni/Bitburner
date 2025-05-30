@@ -13,8 +13,8 @@ import { ProcessCoordinator } from "/core/process/coordination.js";
 import { MoneyTracker } from "/core/process/money-tracker.js";
 import { createStrategyCoordinator } from "/core/process/strategy-coordinator.js";
 
-import { getConfig, loadConfigFromFile } from "./core/config/system-config.js";
-import { clearDataFolder } from "./core/utils/data.js";
+import { getConfig, loadConfigFromFile } from "/core/config/system-config.js";
+import { clearDataFolder } from "/core/utils/data.js";
 
 /**
  * Main system entry point

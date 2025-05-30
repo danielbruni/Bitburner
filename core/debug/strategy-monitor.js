@@ -5,7 +5,7 @@
 
 import { MoneyTracker } from "/core/process/money-tracker.js";
 import { createStrategyCoordinator } from "/core/process/strategy-coordinator.js";
-import { formatMoney } from "./core/utils/common.js";
+import { formatMoney } from "/core/utils/common.js";
 
 /** @param {NS} ns */
 export async function main(ns) {
