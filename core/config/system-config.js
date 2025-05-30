@@ -32,30 +32,6 @@ export const SYSTEM_CONFIG = {
     growthMoneyThreshold: 0.75, // Minimum money percentage before growing
     minimumWorkerRam: 1.75, // Minimum RAM required per worker thread (GB)
   },
-  // ======== OPTIMIZATION SETTINGS ========
-  optimization: {
-    enabled: true,
-    ramUtilizationTarget: 0.85, // Target 85% RAM utilization
-    apiCallsPerSecondLimit: 100, // Maximum API calls per second
-    maxExecutionTime: 500, // Maximum acceptable execution time (ms)
-    executionTimeAlertThreshold: 1.5, // Alert if execution time increases by this factor
-    autoOptimizeInterval: 600000, // How often to apply optimizations (ms)
-    batchSizeIncrement: 5, // Amount to adjust batch sizes by
-    optimizationFrequency: 600000, // How often to apply optimizations (10 minutes)
-
-    // Auto-optimization settings
-    autoOptimize: {
-      enabled: true,
-      applyHighPriority: false, // Whether to automatically apply high-priority recommendations
-      applyMediumPriority: true, // Whether to automatically apply medium-priority recommendations
-      applyLowPriority: true, // Whether to automatically apply low-priority recommendations
-    },
-
-    // History and monitoring settings
-    historyUpdateInterval: 30000, // How often to update performance history (ms)
-    maxHistoryPoints: 100, // Maximum number of data points to store in history
-    monitorDisplayInterval: 5, // Display optimization status every N loops in monitor mode
-  },
 
   // ======== SERVER CATEGORIZATION ========
   serverCategories: {
@@ -70,20 +46,7 @@ export const SYSTEM_CONFIG = {
   workers: {
     maxThreadsPerChunk: 10000, // Max threads per chunk for large servers
     largeServerThreshold: 1024, // GB threshold for large server optimization
-    specialRamOptimization: 16, // Special optimization for 16GB servers
-    workerExecutionBuffer: 100, // Buffer time for worker execution (ms)
-    staleWorkerTimeout: 600000, // Time before considering worker stale (ms)
     chunkLaunchDelay: 50, // Delay between launching worker chunks (ms)
-  },
-
-  // ======== CACHE SETTINGS ========
-  cache: {
-    defaultTtl: 60000, // Default cache TTL (ms)
-    maxCacheSize: 200, // Maximum cache entries
-    idealCacheSize: 200, // Ideal maximum cache size
-    hitRateThreshold: 0.7, // Minimum acceptable cache hit rate
-    ttlIncrement: 60000, // Amount to increase TTL when hit rate is low (ms)
-    pruneInterval: 300000, // How often to prune cache (ms)
   },
 
   // ======== DEBUGGING & MONITORING ========
@@ -114,12 +77,7 @@ export const SYSTEM_CONFIG = {
 
   // ======== SERVER MANAGEMENT ========
   serverManagement: {
-    minimumPurchaseRam: 2, // Minimum RAM for purchased servers (GB)
-    maxPurchasedServers: 25, // Maximum number of purchased servers
     autoUpgradeServers: false, // Whether to automatically upgrade servers
-    upgradeThreshold: 0.9, // Upgrade when utilization exceeds this
-    minimumServerRam: 2, // Don't consider servers below this RAM
-    homeRamBuffer: 50, // Reserve this much RAM on home for safety (GB)
     upgradeRamMultiplier: 2, // Only upgrade if we can afford this multiplier of current RAM
     defaultNewServerRam: 8, // Default RAM for new servers (GB)
   },
@@ -240,12 +198,6 @@ export function validateConfig() {
       max: 60000,
       type: "number",
     },
-    {
-      path: "optimization.ramUtilizationTarget",
-      min: 0.1,
-      max: 1,
-      type: "number",
-    },
     { path: "debug.logLevel", min: 0, max: 2, type: "integer" },
   ];
 
@@ -313,23 +265,7 @@ export function getConfigSummary() {
   summary.push(
     `  Large Server Threshold: ${getConfig("workers.largeServerThreshold")}GB`
   );
-  summary.push(
-    `  Stale Worker Timeout: ${getConfig("workers.staleWorkerTimeout")}ms`
-  );
   summary.push("");
-
-  summary.push("Optimization:");
-  summary.push(
-    `  RAM Utilization Target: ${
-      getConfig("optimization.ramUtilizationTarget") * 100
-    }%`
-  );
-  summary.push(
-    `  Auto-Optimize Interval: ${getConfig(
-      "optimization.autoOptimizeInterval"
-    )}ms`
-  );
-  summary.push(`  Enabled: ${getConfig("optimization.enabled")}`);
 
   return summary.join("\n");
 }
@@ -405,5 +341,4 @@ export const WORKER_CONFIG = SYSTEM_CONFIG.workers;
 export const DEBUG_CONFIG = SYSTEM_CONFIG.debug;
 export const OPTIMIZATION_CONFIG = SYSTEM_CONFIG.optimization;
 export const SERVER_CONFIG = SYSTEM_CONFIG.serverManagement;
-export const CACHE_CONFIG = SYSTEM_CONFIG.cache;
 export const PATHS = SYSTEM_CONFIG.paths;
