@@ -46,9 +46,13 @@ export async function main(ns) {
     ns.print(`❌ Invalid action: ${action}`);
     return;
   }
-
   // Log the start of task
   ns.print(`⏳ Starting ${action} on ${target} with ${threads} threads`);
+  
+  // Track retry attempts for error resilience (moved outside try block)
+  const maxRetries = taskInfo.maxRetries || 3;
+  const retryCount = taskInfo.retryCount || 0;
+  
   try {
     // Check if we should use direct operation scripts instead for RAM efficiency
     const availableRam =
@@ -61,10 +65,6 @@ export async function main(ns) {
     const useDirectScript =
       taskInfo.useDirectScripts ||
       (availableRam < workerRam && availableRam >= operationRam);
-
-    // Track retry attempts for error resilience
-    const maxRetries = taskInfo.maxRetries || 3;
-    const retryCount = taskInfo.retryCount || 0;
 
     // Execute the appropriate action
     let result = 0;
