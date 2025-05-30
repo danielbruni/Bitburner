@@ -15,6 +15,7 @@ import { createStrategyCoordinator } from "/core/process/strategy-coordinator.js
 
 import { getConfig, loadConfigFromFile } from "/core/config/system-config.js";
 import { clearDataFolder } from "/core/utils/data.js";
+import { timestampedPrint } from "./core/debug/debug-utils.js";
 
 /**
  * Main system entry point
@@ -288,13 +289,13 @@ async function coordinateDataRefresh(ns, coordinator, config) {
       if (attempts < maxAttempts) {
         // Server manager completed successfully
         coordinator.markServerDataRefreshed();
-        ns.print("✅ Server manager refresh completed");
+        timestampedPrint(ns, "✅ Server manager refresh completed");
       } else {
         // Server manager took too long or failed
-        ns.print("⚠️ Server manager refresh timed out");
+        timestampedPrint(ns, "⚠️ Server manager refresh timed out");
       }
     } else {
-      ns.print("❌ Failed to start server manager");
+      timestampedPrint(ns, "❌ Failed to start server manager");
     }
   }
 
