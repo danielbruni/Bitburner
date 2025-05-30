@@ -5,6 +5,7 @@
 
 import { formatMoney, formatBytes } from "../utils/common.js";
 import { getConfig } from "../config/system-config.js";
+import { getWorkerProcesses, isWorkerProcess } from "./worker-utils.js";
 
 /** @param {NS} ns */
 export async function main(ns) {
@@ -15,15 +16,15 @@ export async function main(ns) {
 
   do {
     ns.clearLog();
-    ns.print("=== MONEY GENERATION DEBUG SYSTEM ===");
-    ns.print(`Debug Mode: ${debugMode.toUpperCase()}`);
-    ns.print(`Time: ${new Date().toLocaleTimeString()}`);
-    ns.print("");
+    ns.tprint("=== MONEY GENERATION DEBUG SYSTEM ===");
+    ns.tprint(`Debug Mode: ${debugMode.toUpperCase()}`);
+    ns.tprint(`Time: ${new Date().toLocaleTimeString()}`);
+    ns.tprint("");
 
     // Get baseline money
     const currentMoney = ns.getPlayer().money;
-    ns.print(`💰 Current Money: $${formatMoney(currentMoney)}`);
-    ns.print("");
+    ns.tprint(`💰 Current Money: $${formatMoney(currentMoney)}`);
+    ns.tprint("");
 
     if (debugMode === "full" || debugMode === "quick") {
       await analyzeServerResources(ns);
@@ -50,7 +51,7 @@ export async function main(ns) {
  * Analyze server resource utilization
  */
 async function analyzeServerResources(ns) {
-  ns.print("🖥️ === SERVER RESOURCE ANALYSIS ===");
+  ns.tprint("🖥️ === SERVER RESOURCE ANALYSIS ===");
 
   // Load server data
   const serverData = JSON.parse(ns.read("/data/servers.json"));
@@ -71,29 +72,29 @@ async function analyzeServerResources(ns) {
 
     if (utilization > 95) {
       overloadedServers++;
-      ns.print(`❌ ${server.name}: ${utilization.toFixed(1)}% (OVERLOADED)`);
+      ns.tprint(`❌ ${server.name}: ${utilization.toFixed(1)}% (OVERLOADED)`);
     } else if (utilization < 10) {
       idleServers++;
-      ns.print(`⚠️ ${server.name}: ${utilization.toFixed(1)}% (IDLE)`);
+      ns.tprint(`⚠️ ${server.name}: ${utilization.toFixed(1)}% (IDLE)`);
     }
   }
 
   const totalUtilization = (usedRam / totalRam) * 100;
 
-  ns.print("");
-  ns.print(`📊 Total Servers: ${totalServers}`);
-  ns.print(`🔴 Overloaded (>95%): ${overloadedServers}`);
-  ns.print(`🟡 Idle (<10%): ${idleServers}`);
-  ns.print(`💾 RAM Utilization: ${totalUtilization.toFixed(1)}%`);
-  ns.print(`📈 Total RAM: ${formatBytes(totalRam * 1e9)}`);
-  ns.print("");
+  ns.tprint("");
+  ns.tprint(`📊 Total Servers: ${totalServers}`);
+  ns.tprint(`🔴 Overloaded (>95%): ${overloadedServers}`);
+  ns.tprint(`🟡 Idle (<10%): ${idleServers}`);
+  ns.tprint(`💾 RAM Utilization: ${totalUtilization.toFixed(1)}%`);
+  ns.tprint(`📈 Total RAM: ${formatBytes(totalRam * 1e9)}`);
+  ns.tprint("");
 }
 
 /**
  * Analyze target server status
  */
 async function analyzeTargetStatus(ns) {
-  ns.print("🎯 === TARGET SERVER ANALYSIS ===");
+  ns.tprint("🎯 === TARGET SERVER ANALYSIS ===");
 
   const targetData = JSON.parse(ns.read("/data/targets.json"));
   const targets = targetData.targets || [];
@@ -127,7 +128,7 @@ async function analyzeTargetStatus(ns) {
       potentialEarnings += currentMoney * 0.1;
     }
 
-    ns.print(
+    ns.tprint(
       `${status.padEnd(6)} ${target.name}: $${formatMoney(
         currentMoney
       )}/${formatMoney(maxMoney)} (${moneyPercent.toFixed(
@@ -136,19 +137,19 @@ async function analyzeTargetStatus(ns) {
     );
   }
 
-  ns.print("");
-  ns.print(`✅ Ready to hack: ${readyToHack}`);
-  ns.print(`📈 Need grow: ${needsGrow}`);
-  ns.print(`🔒 Need weaken: ${needsWeaken}`);
-  ns.print(`💵 Potential earnings: $${formatMoney(potentialEarnings)}`);
-  ns.print("");
+  ns.tprint("");
+  ns.tprint(`✅ Ready to hack: ${readyToHack}`);
+  ns.tprint(`📈 Need grow: ${needsGrow}`);
+  ns.tprint(`🔒 Need weaken: ${needsWeaken}`);
+  ns.tprint(`💵 Potential earnings: $${formatMoney(potentialEarnings)}`);
+  ns.tprint("");
 }
 
 /**
  * Analyze active worker activity
  */
 async function analyzeWorkerActivity(ns) {
-  ns.print("👷 === WORKER ACTIVITY ANALYSIS ===");
+  ns.tprint("👷 === WORKER ACTIVITY ANALYSIS ===");
 
   const allServers = [...ns.getPurchasedServers(), "home"];
   let totalWorkers = 0;
@@ -158,10 +159,7 @@ async function analyzeWorkerActivity(ns) {
   let workersByTarget = {};
 
   for (const server of allServers) {
-    const processes = ns.ps(server);
-    const workers = processes.filter(
-      (p) => p.filename === "/core/workers/worker.js"
-    );
+    const workers = getWorkerProcesses(ns, server);
 
     totalWorkers += workers.length;
 
@@ -185,15 +183,15 @@ async function analyzeWorkerActivity(ns) {
     }
   }
 
-  ns.print(`🔧 Total Active Workers: ${totalWorkers}`);
-  ns.print(`💰 Hack Workers: ${hackWorkers}`);
-  ns.print(`📈 Grow Workers: ${growWorkers}`);
-  ns.print(`🔒 Weaken Workers: ${weakenWorkers}`);
-  ns.print("");
+  ns.tprint(`🔧 Total Active Workers: ${totalWorkers}`);
+  ns.tprint(`💰 Hack Workers: ${hackWorkers}`);
+  ns.tprint(`📈 Grow Workers: ${growWorkers}`);
+  ns.tprint(`🔒 Weaken Workers: ${weakenWorkers}`);
+  ns.tprint("");
 
   if (totalWorkers === 0) {
-    ns.print("❌ NO WORKERS RUNNING! This is why no money is being made.");
-    ns.print("");
+    ns.tprint("❌ NO WORKERS RUNNING! This is why no money is being made.");
+    ns.tprint("");
     return;
   }
 
@@ -202,47 +200,47 @@ async function analyzeWorkerActivity(ns) {
     .sort(([, a], [, b]) => b.total - a.total)
     .slice(0, 5);
 
-  ns.print("Top targets being worked on:");
+  ns.tprint("Top targets being worked on:");
   for (const [target, actions] of sortedTargets) {
-    ns.print(
+    ns.tprint(
       `  ${target}: ${actions.hack}H ${actions.grow}G ${actions.weaken}W (${actions.total} total)`
     );
   }
-  ns.print("");
+  ns.tprint("");
 }
 
 /**
  * Analyze resource allocation efficiency
  */
 async function analyzeResourceAllocation(ns) {
-  ns.print("⚖️ === RESOURCE ALLOCATION ANALYSIS ===");
+  ns.tprint("⚖️ === RESOURCE ALLOCATION ANALYSIS ===");
 
   // Check if resource manager is running
   const resourceManagerRunning = ns.scriptRunning(
     "/core/resource-manager/index.js",
     "home"
   );
-  ns.print(
+  ns.tprint(
     `Resource Manager Running: ${resourceManagerRunning ? "✅ YES" : "❌ NO"}`
   );
 
   if (!resourceManagerRunning) {
-    ns.print("❌ RESOURCE MANAGER NOT RUNNING! This is a critical issue.");
-    ns.print("💡 Solution: Restart main.js or run resource manager manually");
-    ns.print("");
+    ns.tprint("❌ RESOURCE MANAGER NOT RUNNING! This is a critical issue.");
+    ns.tprint("💡 Solution: Restart main.js or run resource manager manually");
+    ns.tprint("");
     return;
   }
 
   // Check main script status
   const mainScriptRunning = ns.scriptRunning("/main.js", "home");
-  ns.print(`Main Script Running: ${mainScriptRunning ? "✅ YES" : "❌ NO"}`);
+  ns.tprint(`Main Script Running: ${mainScriptRunning ? "✅ YES" : "❌ NO"}`);
 
   // Check server manager
   const serverManagerRunning = ns.scriptRunning(
     "/core/server-manager/index.js",
     "home"
   );
-  ns.print(
+  ns.tprint(
     `Server Manager Running: ${serverManagerRunning ? "✅ YES" : "❌ NO"}`
   );
 
@@ -252,24 +250,24 @@ async function analyzeResourceAllocation(ns) {
   let missingFiles = 0;
   for (const file of requiredFiles) {
     if (!ns.fileExists(file)) {
-      ns.print(`❌ Missing file: ${file}`);
+      ns.tprint(`❌ Missing file: ${file}`);
       missingFiles++;
     }
   }
 
   if (missingFiles > 0) {
-    ns.print(`❌ ${missingFiles} required files missing!`);
+    ns.tprint(`❌ ${missingFiles} required files missing!`);
   } else {
-    ns.print("✅ All required files present");
+    ns.tprint("✅ All required files present");
   }
-  ns.print("");
+  ns.tprint("");
 }
 
 /**
  * Analyze system bottlenecks
  */
 async function analyzeSystemBottlenecks(ns) {
-  ns.print("🚧 === SYSTEM BOTTLENECK ANALYSIS ===");
+  ns.tprint("🚧 === SYSTEM BOTTLENECK ANALYSIS ===");
 
   // RAM bottleneck analysis
   const serverData = JSON.parse(ns.read("/data/servers.json"));
@@ -287,11 +285,11 @@ async function analyzeSystemBottlenecks(ns) {
     }
   }
 
-  ns.print(
+  ns.tprint(
     `📊 Servers with space for workers: ${serversWithSpace}/${availableServers.length}`
   );
-  ns.print(`💾 Total available RAM: ${formatBytes(totalAvailableRam * 1e9)}`);
-  ns.print(
+  ns.tprint(`💾 Total available RAM: ${formatBytes(totalAvailableRam * 1e9)}`);
+  ns.tprint(
     `👷 Potential new workers: ${Math.floor(totalAvailableRam / workerRam)}`
   );
 
@@ -300,9 +298,9 @@ async function analyzeSystemBottlenecks(ns) {
   const targets = targetData.targets || [];
 
   if (targets.length === 0) {
-    ns.print("❌ NO TARGETS AVAILABLE! Cannot make money without targets.");
+    ns.tprint("❌ NO TARGETS AVAILABLE! Cannot make money without targets.");
   } else {
-    ns.print(`🎯 Available targets: ${targets.length}`);
+    ns.tprint(`🎯 Available targets: ${targets.length}`);
 
     // Check if we have root access to top targets
     let targetsWithAccess = 0;
@@ -311,16 +309,16 @@ async function analyzeSystemBottlenecks(ns) {
         targetsWithAccess++;
       }
     }
-    ns.print(`🔓 Top targets with root access: ${targetsWithAccess}/10`);
+    ns.tprint(`🔓 Top targets with root access: ${targetsWithAccess}/10`);
   }
-  ns.print("");
+  ns.tprint("");
 }
 
 /**
  * Generate actionable recommendations
  */
 async function generateRecommendations(ns) {
-  ns.print("💡 === RECOMMENDATIONS ===");
+  ns.tprint("💡 === RECOMMENDATIONS ===");
 
   const recommendations = [];
 
@@ -381,14 +379,14 @@ async function generateRecommendations(ns) {
         : rec.priority === "HIGH"
         ? "⚠️"
         : "💡";
-    ns.print(`${emoji} ${rec.priority}: ${rec.issue}`);
-    ns.print(`   Solution: ${rec.solution}`);
+    ns.tprint(`${emoji} ${rec.priority}: ${rec.issue}`);
+    ns.tprint(`   Solution: ${rec.solution}`);
   }
 
   if (recommendations.length === 0) {
-    ns.print("✅ No major issues detected. System should be earning money.");
+    ns.tprint("✅ No major issues detected. System should be earning money.");
   }
-  ns.print("");
+  ns.tprint("");
 }
 
 /**
@@ -397,7 +395,7 @@ async function generateRecommendations(ns) {
 async function monitorEarnings(ns) {
   if (!ns.read("/tmp/money-baseline.txt")) {
     ns.write("/tmp/money-baseline.txt", ns.getPlayer().money.toString(), "w");
-    ns.print("💰 Baseline money recorded. Run again to see earnings.");
+    ns.tprint("💰 Baseline money recorded. Run again to see earnings.");
     return;
   }
 
@@ -409,10 +407,10 @@ async function monitorEarnings(ns) {
 
   ns.write("/tmp/money-time.txt", Date.now().toString(), "w");
 
-  ns.print("💰 === EARNINGS MONITOR ===");
-  ns.print(`Baseline: $${formatMoney(baseline)}`);
-  ns.print(`Current:  $${formatMoney(current)}`);
-  ns.print(
+  ns.tprint("💰 === EARNINGS MONITOR ===");
+  ns.tprint(`Baseline: $${formatMoney(baseline)}`);
+  ns.tprint(`Current:  $${formatMoney(current)}`);
+  ns.tprint(
     `Earned:   $${formatMoney(earned)} (${earned >= 0 ? "+" : ""}${formatMoney(
       earned
     )})`
@@ -423,9 +421,9 @@ async function monitorEarnings(ns) {
     const earningsPerMinute = earningsPerSecond * 60;
     const earningsPerHour = earningsPerMinute * 60;
 
-    ns.print(`Rate:     $${formatMoney(earningsPerSecond)}/sec`);
-    ns.print(`          $${formatMoney(earningsPerMinute)}/min`);
-    ns.print(`          $${formatMoney(earningsPerHour)}/hour`);
+    ns.tprint(`Rate:     $${formatMoney(earningsPerSecond)}/sec`);
+    ns.tprint(`          $${formatMoney(earningsPerMinute)}/min`);
+    ns.tprint(`          $${formatMoney(earningsPerHour)}/hour`);
   }
 
   // Update baseline
@@ -441,9 +439,7 @@ function getAllWorkerCount(ns) {
 
   for (const server of allServers) {
     const processes = ns.ps(server);
-    const workers = processes.filter(
-      (p) => p.filename === "/core/workers/worker.js"
-    );
+    const workers = processes.filter((p) => isWorkerProcess(p));
     totalWorkers += workers.length;
   }
 
