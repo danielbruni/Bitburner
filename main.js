@@ -10,6 +10,8 @@
 
 import { createProcessMonitor } from "/core/process/process-health.js";
 import { ProcessCoordinator } from "/core/process/coordination.js";
+import { MoneyTracker } from "/core/process/money-tracker.js";
+import { StrategyCoordinator } from "/core/process/strategy-coordinator.js";
 
 import { getConfig, loadConfigFromFile } from "./core/config/system-config.js";
 import { clearDataFolder } from "./core/utils/data.js";
@@ -45,22 +47,29 @@ export async function main(ns) {
     maxDataAge: getConfig("processes.maxDataAge"),
     maxTargetAge: getConfig("processes.maxTargetAge"),
     fileCopyInterval: getConfig("processes.fileCopyInterval"),
-  };
-  // Initialize script and process management
-  const { processMonitor, coordinator } = await initializeSystem(ns, CONFIG);
+  }; // Initialize script and process management
+  const { processMonitor, coordinator, moneyTracker, strategyCoordinator } =
+    await initializeSystem(ns, CONFIG);
 
-  ns.tprint("==== Dynamic Resource Allocation Hacking System (v2.0) ====");
+  ns.tprint("==== Dynamic Resource Allocation Hacking System (v2.1) ====");
   if (shouldClearData) {
     ns.tprint("🔄 System initialized with FRESH DATA");
   } else {
     ns.tprint("✅ System initialized with process health monitoring");
   }
-
+  ns.tprint("💰 Money tracking and strategy coordination enabled");
   // Main coordination loop
   while (true) {
     try {
       // Check and maintain process health
       await maintainProcessHealth(ns, processMonitor, coordinator, CONFIG);
+
+      // Handle money tracking and strategy coordination
+      await handleMoneyTrackingAndStrategy(
+        ns,
+        moneyTracker,
+        strategyCoordinator
+      );
 
       // Handle data refresh coordination
       await coordinateDataRefresh(ns, coordinator, CONFIG);
@@ -69,7 +78,7 @@ export async function main(ns) {
       await coordinateFileCopying(ns, coordinator, CONFIG);
 
       // Output system status
-      outputSystemStatus(ns, processMonitor, coordinator);
+      outputSystemStatus(ns, processMonitor, coordinator, moneyTracker);
 
       // Wait before next health check
       await ns.sleep(CONFIG.healthCheckInterval);
@@ -84,7 +93,7 @@ export async function main(ns) {
  * Initialize system with process monitoring and coordination
  * @param {NS} ns - NetScript API
  * @param {Object} config - Script configuration
- * @returns {Object} Object containing processMonitor and coordinator
+ * @returns {Object} Object containing processMonitor, coordinator, moneyTracker, and strategyCoordinator
  */
 async function initializeSystem(ns, config) {
   ns.disableLog("ALL");
@@ -119,10 +128,14 @@ async function initializeSystem(ns, config) {
   const processMonitor = createProcessMonitor(ns, config);
   const coordinator = new ProcessCoordinator(ns);
 
+  // Initialize money tracking and strategy coordination
+  const moneyTracker = new MoneyTracker(ns);
+  const strategyCoordinator = new StrategyCoordinator(ns);
+
   // Start core processes
   await processMonitor.ensureAllRunning();
 
-  return { processMonitor, coordinator };
+  return { processMonitor, coordinator, moneyTracker, strategyCoordinator };
 }
 
 /**
@@ -178,6 +191,64 @@ async function maintainProcessHealth(ns, processMonitor, coordinator, config) {
         reason: "Process stopped",
       });
     }
+  }
+}
+
+/**
+ * Handle money tracking and strategy coordination
+ * @param {NS} ns - NetScript API
+ * @param {MoneyTracker} moneyTracker - Money tracker instance
+ * @param {StrategyCoordinator} strategyCoordinator - Strategy coordinator instance
+ */
+async function handleMoneyTrackingAndStrategy(
+  ns,
+  moneyTracker,
+  strategyCoordinator
+) {
+  try {
+    // Update money tracking
+    moneyTracker.updateTracking();
+
+    // Check for strategy changes and apply them
+    const strategyChanged = strategyCoordinator.checkAndApplyStrategyChanges();
+
+    if (strategyChanged) {
+      ns.print("🔄 Strategy change detected and applied");
+
+      // Signal processes to reload their configurations
+      const coordinator = new ProcessCoordinator(ns);
+      coordinator.sendMessage("strategy_changed", {
+        newStrategy: strategyCoordinator.currentStrategy,
+        timestamp: Date.now(),
+      });
+    }
+
+    // Check if money tracking suggests a strategy change
+    const shouldChangeStrategy = moneyTracker.shouldChangeStrategy();
+    if (shouldChangeStrategy) {
+      const currentStrategy = strategyCoordinator.getCurrentStrategy();
+      const recommendedStrategy = strategyCoordinator.getRecommendedStrategy();
+
+      if (recommendedStrategy !== currentStrategy) {
+        ns.print(
+          `💰 Money tracker suggests strategy change: ${currentStrategy} → ${recommendedStrategy}`
+        );
+
+        const changeResult = await strategyCoordinator.changeStrategy(
+          recommendedStrategy,
+          "money_tracker_suggestion"
+        );
+
+        if (changeResult.success) {
+          ns.print(`✅ Strategy changed to ${recommendedStrategy}`);
+          moneyTracker.onStrategyChanged(recommendedStrategy);
+        } else {
+          ns.print(`❌ Strategy change failed: ${changeResult.reason}`);
+        }
+      }
+    }
+  } catch (error) {
+    ns.print(`ERROR in money tracking/strategy: ${error.toString()}`);
   }
 }
 
@@ -248,10 +319,12 @@ async function coordinateFileCopying(ns, coordinator, config) {
  * @param {NS} ns - NetScript API
  * @param {ProcessHealthMonitor} processMonitor - Process monitor
  * @param {ProcessCoordinator} coordinator - Process coordinator
+ * @param {MoneyTracker} moneyTracker - Money tracker instance
  */
-function outputSystemStatus(ns, processMonitor, coordinator) {
+function outputSystemStatus(ns, processMonitor, coordinator, moneyTracker) {
   const healthSummary = processMonitor.getHealthSummary();
   const statusSummary = coordinator.getStatusSummary();
+  const moneyStatus = moneyTracker.getStatus();
 
   // Only output status every 30 seconds to avoid spam
   const now = Date.now();
@@ -264,6 +337,13 @@ function outputSystemStatus(ns, processMonitor, coordinator) {
         `Processes: ${healthSummary.healthy}✅ ${healthSummary.stopped}⛔ | ` +
         `Data Age: S:${statusSummary.serverDataAge}s T:${statusSummary.targetDataAge}s`
     );
+
+    ns.print(
+      `💰 Money Status - Rate: ${moneyStatus.formattedCurrentRate}/sec | ` +
+        `Strategy: ${moneyStatus.currentStrategy} | ` +
+        `Stagnant: ${moneyStatus.isStagnant ? "YES" : "NO"}`
+    );
+
     outputSystemStatus.lastOutput = now;
   }
 }

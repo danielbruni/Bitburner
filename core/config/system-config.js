@@ -64,6 +64,20 @@ export const SYSTEM_CONFIG = {
     healthCheckHomeRamThreshold: 50, // Home RAM threshold for warnings (GB)
   },
 
+  // ======== MONEY TRACKING & STRATEGY MANAGEMENT ========
+  moneyTracking: {
+    interval: 10000, // How often to update money tracking (ms) - 10 seconds
+    sampleSize: 30, // Number of samples to keep for rate calculation (5 minutes of data)
+    minRateThreshold: 1000, // Minimum acceptable earnings rate ($/sec)
+    stagnationTime: 300000, // Time without positive earnings before considered stagnant (ms) - 5 minutes
+    strategyChangeThreshold: 180000, // Time threshold for triggering strategy change (ms) - 3 minutes
+    recoveryTime: 600000, // Cooldown between strategy changes (ms) - 10 minutes
+    emergencyThreshold: 900000, // Time threshold for emergency mode (ms) - 15 minutes
+    strategyAnalysisInterval: 60000, // How often to analyze strategy effectiveness (ms) - 1 minute
+    enableAutoStrategyChange: true, // Whether to automatically change strategies
+    maxDailyStrategyChanges: 10, // Maximum strategy changes per day
+  },
+
   // ======== FACTION & MILESTONES ========
   factions: {
     requiredHackingLevels: {

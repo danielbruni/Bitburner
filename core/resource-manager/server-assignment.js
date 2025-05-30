@@ -6,7 +6,69 @@ import {
   calculateLargeServerChunks,
   launchChunkedWorkers,
 } from "./large-server-optimization.js";
+import { StrategyCoordinator } from "../process/strategy-coordinator.js";
 import { getConfig } from "../config/system-config.js";
+
+/**
+ * Create strategy-enhanced task info for workers
+ * @param {Object} task - Base task object
+ * @param {string} currentStrategy - Current strategy name
+ * @returns {Object} Enhanced task info with strategy parameters
+ */
+function createStrategyEnhancedTaskInfo(task, currentStrategy) {
+  let strategyParams = {};
+
+  switch (currentStrategy) {
+    case "aggressive":
+      strategyParams = {
+        cooldown: 500, // Faster execution
+        growthThreshold: 0.6, // Lower threshold for more aggressive actions
+        securityThreshold: 7, // Higher tolerance for security
+        enableChaining: true,
+        maxRetries: 2, // Fewer retries for speed
+      };
+      break;
+
+    case "conservative":
+      strategyParams = {
+        cooldown: 2000, // Slower, more careful execution
+        growthThreshold: 0.9, // Higher threshold for safety
+        securityThreshold: 3, // Lower tolerance for security
+        enableChaining: false,
+        maxRetries: 5, // More retries for reliability
+      };
+      break;
+
+    case "emergency":
+      strategyParams = {
+        cooldown: 100, // Very fast execution
+        growthThreshold: 0.5, // Very aggressive
+        securityThreshold: 10, // High security tolerance
+        enableChaining: true,
+        maxRetries: 1, // Minimal retries for speed
+        useDirectScripts: true, // Use direct scripts for efficiency
+      };
+      break;
+
+    case "balanced":
+    default:
+      strategyParams = {
+        cooldown: 1000, // Standard timing
+        growthThreshold: 0.75, // Balanced threshold
+        securityThreshold: 5, // Standard security tolerance
+        enableChaining: true,
+        maxRetries: 3, // Standard retries
+      };
+      break;
+  }
+
+  return {
+    ...task,
+    ...strategyParams,
+    strategy: currentStrategy,
+    trackMetrics: true,
+  };
+}
 
 /**
  * Assign servers to a task
@@ -29,6 +91,14 @@ export async function assignServersToTask(
   workerRam,
   homeReservedRam = 10 // Default to 10GB if not specified
 ) {
+  // Get current strategy for worker parameters
+  const strategyCoordinator = new StrategyCoordinator(ns);
+  const currentStrategy = strategyCoordinator.getCurrentStrategy();
+  const enhancedTaskInfo = createStrategyEnhancedTaskInfo(
+    task,
+    currentStrategy
+  );
+
   // Get total threads needed
   const totalThreadsNeeded = threadCounts.total;
   let threadsAssigned = 0;
@@ -111,14 +181,12 @@ export async function assignServersToTask(
           task,
           serverObj.availableRam,
           workerRam
-        );
-
-        // Launch workers in chunks
+        ); // Launch workers in chunks
         const assignedThreads = await launchChunkedWorkers(
           ns,
           server,
           chunks,
-          task,
+          enhancedTaskInfo,
           assignedHosts,
           taskData
         );
@@ -143,7 +211,7 @@ export async function assignServersToTask(
         task.target,
         threadCounts.action,
         threadsToAssign,
-        JSON.stringify(task)
+        JSON.stringify(enhancedTaskInfo)
       );
 
       if (pid > 0) {
@@ -218,7 +286,7 @@ export async function assignServersToTask(
           task.target,
           threadCounts.action,
           threadsToAssign,
-          JSON.stringify(task)
+          JSON.stringify(enhancedTaskInfo)
         );
 
         if (pid > 0) {
@@ -287,7 +355,7 @@ export async function assignServersToTask(
             task.target,
             threadCounts.action,
             threadsToAssign,
-            JSON.stringify(task)
+            JSON.stringify(enhancedTaskInfo)
           );
 
           if (pid > 0) {
