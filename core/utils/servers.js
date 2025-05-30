@@ -16,12 +16,7 @@ export async function cleanPrivateServers(ns) {
   const privateServers = ns.getPurchasedServers();
 
   // Files to remove
-  const filesToRemove = [
-    "/core/workers/worker.js",
-    "/core/operations/hack.js",
-    "/core/operations/grow.js",
-    "/core/operations/weaken.js",
-  ];
+  const filesToRemove = ["/core/workers/worker.js"];
 
   let serversProcessed = 0;
   let filesRemoved = 0;
@@ -58,12 +53,7 @@ export async function cleanHackedServers(ns) {
   const hackedServers = await getHackedServers(ns);
 
   // Files to remove
-  const filesToRemove = [
-    "/core/workers/worker.js",
-    "/core/operations/hack.js",
-    "/core/operations/grow.js",
-    "/core/operations/weaken.js",
-  ];
+  const filesToRemove = ["/core/workers/worker.js"];
 
   let serversProcessed = 0;
   let filesRemoved = 0;

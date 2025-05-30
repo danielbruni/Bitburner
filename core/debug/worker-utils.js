@@ -20,22 +20,6 @@ export function isWorkerProcess(process) {
 }
 
 /**
- * Check if a process is an operation script (hack/grow/weaken)
- * @param {Object} process - Process object from ns.ps()
- * @returns {boolean} True if the process is an operation script
- */
-export function isOperationProcess(process) {
-  const filename = process.filename;
-
-  return (
-    filename.endsWith("hack.js") ||
-    filename.endsWith("grow.js") ||
-    filename.endsWith("weaken.js") ||
-    filename.includes("/operations/")
-  );
-}
-
-/**
  * Get all worker processes from a server
  * @param {NS} ns - Netscript object
  * @param {string} server - Server name
@@ -43,7 +27,7 @@ export function isOperationProcess(process) {
  */
 export function getWorkerProcesses(ns, server) {
   const processes = ns.ps(server);
-  return processes.filter((p) => isWorkerProcess(p) || isOperationProcess(p));
+  return processes.filter((p) => isWorkerProcess(p));
 }
 
 /**

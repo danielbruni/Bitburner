@@ -247,12 +247,7 @@ async function analyzeResourceAllocation(ns) {
   );
 
   // Check for script files
-  const requiredFiles = [
-    "/core/workers/worker.js",
-    "/core/operations/hack.js",
-    "/core/operations/grow.js",
-    "/core/operations/weaken.js",
-  ];
+  const requiredFiles = ["/core/workers/worker.js"];
 
   let missingFiles = 0;
   for (const file of requiredFiles) {

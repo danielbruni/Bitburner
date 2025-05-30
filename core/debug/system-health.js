@@ -65,12 +65,7 @@ export async function main(ns) {
   }
 
   // Check 4: Server files
-  const requiredFiles = [
-    "/core/workers/worker.js",
-    "/core/operations/hack.js",
-    "/core/operations/grow.js",
-    "/core/operations/weaken.js",
-  ];
+  const requiredFiles = ["/core/workers/worker.js"];
 
   const missingFiles = requiredFiles.filter((file) => !ns.fileExists(file));
   if (missingFiles.length > 0) {

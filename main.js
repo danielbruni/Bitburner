@@ -94,9 +94,6 @@ async function initializeSystem(ns, config) {
     "/core/server-manager/index.js",
     "/core/resource-manager/index.js",
     "/core/workers/worker.js",
-    "/core/operations/hack.js",
-    "/core/operations/grow.js",
-    "/core/operations/weaken.js",
   ];
 
   ns.print("🔍 Checking required scripts...");
@@ -285,12 +282,7 @@ async function copyFilesToAvailableServers(ns, availableServers) {
   }
 
   // Files to copy
-  const filesToCopy = [
-    "/core/workers/worker.js",
-    "/core/operations/hack.js",
-    "/core/operations/grow.js",
-    "/core/operations/weaken.js",
-  ];
+  const filesToCopy = ["/core/workers/worker.js"];
 
   // Copy to each server efficiently
   for (const server of servers) {
