@@ -12,6 +12,7 @@ export async function main(ns) {
   const continuous = ns.args[1] === "true";
 
   ns.disableLog("ALL");
+  ns.ui.openTail(); // Open the tail window
 
   if (mode === "track") {
     await trackWorkerEarnings(ns, continuous);
