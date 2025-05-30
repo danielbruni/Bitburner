@@ -5,7 +5,6 @@
 
 import { formatMoney } from "../utils/common.js";
 import { getWorkerStats, formatWorkerStats } from "./worker-utils.js";
-import { getConfig } from "../config/system-config.js";
 
 /** @param {NS} ns */
 export async function main(ns) {
