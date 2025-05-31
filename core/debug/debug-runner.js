@@ -3,11 +3,8 @@
  * Easy access to all debugging tools
  */
 
-import {
-  getWorkerStats,
-  formatWorkerStats,
-} from "./core/debug/worker-utils.js";
-import { formatMoney } from "./core/utils/common.js";
+import { getWorkerStats, formatWorkerStats } from "/core/debug/worker-utils.js";
+import { formatMoney } from "/core/utils/common.js";
 
 /** @param {NS} ns */
 export async function main(ns) {

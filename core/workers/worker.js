@@ -2,14 +2,39 @@
  * core/workers/worker.js - Task Worker
  * Executes specific hacking tasks with dynamic threading
  *
- * ⚠️  IMPORTANT: NO IMPORTS OR FILE READING ALLOWED IN THIS FILE! ⚠️
- * This file gets copied to all servers in Bitburner, so it must be completely
- * self-contained with no external dependencies, import statements, or file reading.
- * All utility functions and configuration values must be hardcoded locally within this file.
- * Do NOT use ns.read(), ns.fileExists(), or any file operations!
+ * ⚠️⚠️⚠️ CRITICAL: THIS FILE RUNS IN COMPLETE ISOLATION! ⚠️⚠️⚠️
  *
- * AI/ChatBot Note: Always keep this file import-free, file-read-free, and completely self-contained!
- * This worker runs in isolation on remote servers with no access to the home filesystem.
+ * This worker file gets copied to remote servers in Bitburner and runs independently.
+ * It has ABSOLUTELY NO ACCESS to:
+ * - HOME FILESYSTEM (/data/ directory, config files, state files, logs)
+ * - ANY DATA from the main system (no shared variables, no persistence)
+ * - Import statements or external modules from home
+ * - Global variables or shared state between workers
+ * - File I/O operations (ns.read(), ns.write(), ns.fileExists())
+ * - Any coordination data or strategy information
+ * - Server lists, target data, or configuration files
+ * - Process state, metrics, or tracking information
+ *
+ * MUST BE 100% SELF-CONTAINED AND ISOLATED:
+ * - All utility functions hardcoded locally within this file
+ * - No external dependencies whatsoever
+ * - No file operations of any kind
+ * - No imports from home system
+ * - No access to global scope or shared variables
+ * - No communication with main system except through ns.args
+ * - Cannot read ANY files from home server
+ * - Cannot access ANY data structures from main system
+ *
+ * COMMUNICATION RESTRICTIONS:
+ * - Input: Only through ns.args when worker is spawned
+ * - Output: Only through ns.print() for local logging
+ * - NO file-based communication possible
+ * - NO shared memory or variables
+ *
+ * ⚠️ AI/ChatBot/Developer Note: NEVER add imports, file operations,
+ * global references, or data access to this file! This worker operates
+ * in complete isolation on remote servers with ZERO home system access.
+ * Any attempt to access home data will cause runtime errors!
  */
 
 /** @param {NS} ns */
@@ -46,9 +71,13 @@ export async function main(ns) {
     ns.print(`❌ Invalid action: ${action}`);
     return;
   }
-
   // Log the start of task
   ns.print(`⏳ Starting ${action} on ${target} with ${threads} threads`);
+
+  // Track retry attempts for error resilience (moved outside try block)
+  const maxRetries = taskInfo.maxRetries || 3;
+  const retryCount = taskInfo.retryCount || 0;
+
   try {
     // Check if we should use direct operation scripts instead for RAM efficiency
     const availableRam =
@@ -61,10 +90,6 @@ export async function main(ns) {
     const useDirectScript =
       taskInfo.useDirectScripts ||
       (availableRam < workerRam && availableRam >= operationRam);
-
-    // Track retry attempts for error resilience
-    const maxRetries = taskInfo.maxRetries || 3;
-    const retryCount = taskInfo.retryCount || 0;
 
     // Execute the appropriate action
     let result = 0;
@@ -209,9 +234,10 @@ export async function main(ns) {
       );
     }
   }
-
   // Report metrics if tracking is enabled
   if (taskInfo.trackMetrics) {
+    // NOTE: Cannot store metrics globally since worker runs in isolation
+    // Metrics tracking would need to be handled by the calling system
     const metrics = {
       target,
       action,
@@ -219,11 +245,12 @@ export async function main(ns) {
       executionTime: (Date.now() - startTime) / 1000,
       timestamp: Date.now(),
     };
-    // Store last few operations in global data for optimization analysis
-    if (!global.workerMetrics) global.workerMetrics = [];
-    global.workerMetrics.push(metrics);
-    // Keep only last 100 operations to avoid memory issues
-    if (global.workerMetrics.length > 100) global.workerMetrics.shift();
+    // Log metrics locally for debugging (no global storage available)
+    ns.print(
+      `📊 Metrics: ${action} took ${metrics.executionTime.toFixed(
+        2
+      )}s with ${threads} threads`
+    );
   }
 }
 

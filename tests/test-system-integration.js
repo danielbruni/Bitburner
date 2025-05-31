@@ -42,18 +42,13 @@ async function testConfigurationSystem(ns, testResults) {
 
   // Test 1: Basic configuration retrieval
   runTest(tests, "Basic Config Retrieval", () => {
-    const ramTarget = getConfig("optimization.ramUtilizationTarget");
     const homeRam = getConfig("resources.homeReservedRam");
-
-    if (typeof ramTarget !== "number" || ramTarget <= 0 || ramTarget > 1) {
-      throw new Error(`Invalid ramUtilizationTarget: ${ramTarget}`);
-    }
 
     if (typeof homeRam !== "number" || homeRam < 0) {
       throw new Error(`Invalid homeReservedRam: ${homeRam}`);
     }
 
-    return { ramTarget, homeRam };
+    return { homeRam };
   });
 
   // Test 2: Configuration validation

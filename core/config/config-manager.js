@@ -13,7 +13,7 @@ import {
   getConfigSummary,
   loadConfigFromFile,
   saveConfigToFile,
-} from "./core/config/system-config.js";
+} from "./system-config.js";
 
 /** @param {NS} ns */
 export async function main(ns) {
@@ -189,9 +189,9 @@ function showHelp(ns) {
   ns.tprint("  run config-manager.js --backup");
   ns.tprint("");
   ns.tprint("Configuration Categories:");
-  ns.tprint("  processes, resources, serverCategories, workers, cache,");
+  ns.tprint("  processes, resources, serverCategories, workers,");
   ns.tprint("  debug, optimization, factions, serverManagement,");
-  ns.tprint("  taskBalancing, paths, limits");
+  ns.tprint("  paths, limits");
 }
 
 /**
@@ -250,7 +250,6 @@ export function getConfigPresets() {
         fileCopyInterval: 600000,
       },
       optimization: {
-        ramUtilizationTarget: 0.75,
         enabled: false,
       },
     },
@@ -266,7 +265,6 @@ export function getConfigPresets() {
         fileCopyInterval: 120000,
       },
       optimization: {
-        ramUtilizationTarget: 0.95,
         enabled: true,
       },
     },
@@ -282,7 +280,6 @@ export function getConfigPresets() {
         fileCopyInterval: 300000,
       },
       optimization: {
-        ramUtilizationTarget: 0.85,
         enabled: true,
       },
     },

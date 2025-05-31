@@ -259,18 +259,9 @@ export class ProcessHealthMonitor {
  */
 export function createProcessMonitor(ns, config) {
   const monitor = new ProcessHealthMonitor(ns);
-
   // Register core system processes
-  monitor.registerProcess(
-    "/core/server-manager/index.js",
-    "home",
-    [config.shouldUpgradeServers, config.homeReservedRam],
-    {
-      critical: true,
-      maxRestarts: 5,
-      restartDelay: 1000,
-    }
-  );
+  // NOTE: Server manager is NOT registered here because it's designed to run once and exit
+  // It's triggered on-demand by the data refresh coordination system
 
   monitor.registerProcess(
     "/core/resource-manager/index.js",

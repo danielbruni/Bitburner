@@ -10,9 +10,12 @@
 
 import { createProcessMonitor } from "/core/process/process-health.js";
 import { ProcessCoordinator } from "/core/process/coordination.js";
+import { MoneyTracker } from "/core/process/money-tracker.js";
+import { createStrategyCoordinator } from "/core/process/strategy-coordinator.js";
 
-import { getConfig, loadConfigFromFile } from "./core/config/system-config.js";
-import { clearDataFolder } from "./core/utils/data.js";
+import { getConfig, loadConfigFromFile } from "/core/config/system-config.js";
+import { clearDataFolder } from "/core/utils/data.js";
+import { timestampedPrint } from "./core/debug/debug-utils.js";
 
 /**
  * Main system entry point
@@ -45,22 +48,29 @@ export async function main(ns) {
     maxDataAge: getConfig("processes.maxDataAge"),
     maxTargetAge: getConfig("processes.maxTargetAge"),
     fileCopyInterval: getConfig("processes.fileCopyInterval"),
-  };
-  // Initialize script and process management
-  const { processMonitor, coordinator } = await initializeSystem(ns, CONFIG);
+  }; // Initialize script and process management
+  const { processMonitor, coordinator, moneyTracker, strategyCoordinator } =
+    await initializeSystem(ns, CONFIG);
 
-  ns.tprint("==== Dynamic Resource Allocation Hacking System (v2.0) ====");
+  ns.tprint("==== Dynamic Resource Allocation Hacking System (v2.1) ====");
   if (shouldClearData) {
     ns.tprint("🔄 System initialized with FRESH DATA");
   } else {
     ns.tprint("✅ System initialized with process health monitoring");
   }
-
+  ns.tprint("💰 Money tracking and strategy coordination enabled");
   // Main coordination loop
   while (true) {
     try {
       // Check and maintain process health
       await maintainProcessHealth(ns, processMonitor, coordinator, CONFIG);
+
+      // Handle money tracking and strategy coordination
+      await handleMoneyTrackingAndStrategy(
+        ns,
+        moneyTracker,
+        strategyCoordinator
+      );
 
       // Handle data refresh coordination
       await coordinateDataRefresh(ns, coordinator, CONFIG);
@@ -69,7 +79,7 @@ export async function main(ns) {
       await coordinateFileCopying(ns, coordinator, CONFIG);
 
       // Output system status
-      outputSystemStatus(ns, processMonitor, coordinator);
+      outputSystemStatus(ns, processMonitor, coordinator, moneyTracker);
 
       // Wait before next health check
       await ns.sleep(CONFIG.healthCheckInterval);
@@ -84,7 +94,7 @@ export async function main(ns) {
  * Initialize system with process monitoring and coordination
  * @param {NS} ns - NetScript API
  * @param {Object} config - Script configuration
- * @returns {Object} Object containing processMonitor and coordinator
+ * @returns {Object} Object containing processMonitor, coordinator, moneyTracker, and strategyCoordinator
  */
 async function initializeSystem(ns, config) {
   ns.disableLog("ALL");
@@ -94,9 +104,6 @@ async function initializeSystem(ns, config) {
     "/core/server-manager/index.js",
     "/core/resource-manager/index.js",
     "/core/workers/worker.js",
-    "/core/operations/hack.js",
-    "/core/operations/grow.js",
-    "/core/operations/weaken.js",
   ];
 
   ns.print("🔍 Checking required scripts...");
@@ -121,11 +128,14 @@ async function initializeSystem(ns, config) {
   // Initialize process monitor and coordinator
   const processMonitor = createProcessMonitor(ns, config);
   const coordinator = new ProcessCoordinator(ns);
+  // Initialize money tracking and strategy coordination
+  const moneyTracker = new MoneyTracker(ns);
+  const strategyCoordinator = createStrategyCoordinator(ns);
 
   // Start core processes
   await processMonitor.ensureAllRunning();
 
-  return { processMonitor, coordinator };
+  return { processMonitor, coordinator, moneyTracker, strategyCoordinator };
 }
 
 /**
@@ -185,35 +195,190 @@ async function maintainProcessHealth(ns, processMonitor, coordinator, config) {
 }
 
 /**
+ * Handle money tracking and strategy coordination
+ * @param {NS} ns - NetScript API
+ * @param {MoneyTracker} moneyTracker - Money tracker instance
+ * @param {StrategyCoordinator} strategyCoordinator - Strategy coordinator instance
+ */
+async function handleMoneyTrackingAndStrategy(
+  ns,
+  moneyTracker,
+  strategyCoordinator
+) {
+  try {
+    // Update money tracking
+    moneyTracker.updateTracking();
+
+    // Check for strategy changes and apply them
+    const strategyChanged = strategyCoordinator.checkAndApplyStrategyChanges();
+
+    if (strategyChanged) {
+      ns.print("🔄 Strategy change detected and applied");
+
+      // Signal processes to reload their configurations
+      const coordinator = new ProcessCoordinator(ns);
+      coordinator.sendMessage("strategy_changed", {
+        newStrategy: strategyCoordinator.currentStrategy,
+        timestamp: Date.now(),
+      });
+    }
+
+    // Check if money tracking suggests a strategy change
+    const shouldChangeStrategy = moneyTracker.shouldChangeStrategy();
+    if (shouldChangeStrategy) {
+      const currentStrategy = strategyCoordinator.getCurrentStrategy();
+      const recommendedStrategy = strategyCoordinator.getRecommendedStrategy();
+
+      if (recommendedStrategy !== currentStrategy) {
+        ns.print(
+          `💰 Money tracker suggests strategy change: ${currentStrategy} → ${recommendedStrategy}`
+        );
+
+        const changeResult = await strategyCoordinator.changeStrategy(
+          recommendedStrategy,
+          "money_tracker_suggestion"
+        );
+
+        if (changeResult.success) {
+          ns.print(`✅ Strategy changed to ${recommendedStrategy}`);
+          moneyTracker.onStrategyChanged(recommendedStrategy);
+        } else {
+          ns.print(`❌ Strategy change failed: ${changeResult.reason}`);
+        }
+      }
+    }
+  } catch (error) {
+    ns.print(`ERROR in money tracking/strategy: ${error.toString()}`);
+  }
+}
+
+/**
  * Coordinate data refresh based on staleness and process coordination
  * @param {NS} ns - NetScript API
  * @param {ProcessCoordinator} coordinator - Process coordinator
  * @param {Object} config - System configuration
  */
 async function coordinateDataRefresh(ns, coordinator, config) {
+  // Check if server manager is already running
+  if (ns.scriptRunning("/core/server-manager/index.js", "home")) {
+    // Server manager is already running, don't trigger another one
+    return;
+  }
+
   // Check if we need to refresh server data
   if (coordinator.isServerDataStale(config.maxDataAge)) {
     ns.print("🔄 Server data is stale, triggering refresh...");
 
-    // Signal server manager to refresh if it's running
-    if (ns.scriptRunning("/core/server-manager/index.js", "home")) {
-      coordinator.sendMessage("refresh_server_data", {
-        reason: "Data stale",
-        maxAge: config.maxDataAge,
-      });
-    } else {
-      // If server manager isn't running, we need to run it once
-      const pid = ns.exec(
-        "/core/server-manager/index.js",
-        "home",
-        1,
-        config.shouldUpgradeServers,
-        config.homeReservedRam
+    // Check RAM availability before attempting to start server manager
+    const serverManagerRam = ns.getScriptRam("/core/server-manager/index.js");
+    const homeMaxRam = ns.getServerMaxRam("home");
+    const homeUsedRam = ns.getServerUsedRam("home");
+    const homeAvailableRam = homeMaxRam - homeUsedRam;
+
+    if (homeAvailableRam < serverManagerRam) {
+      timestampedPrint(
+        ns,
+        `❌ Cannot start server manager: Need ${serverManagerRam}GB RAM, only ${homeAvailableRam.toFixed(
+          2
+        )}GB available`
       );
-      if (pid > 0) {
-        await ns.sleep(500); // Give it time to complete
-        coordinator.markServerDataRefreshed();
+
+      // Try to free up some RAM by killing less critical scripts
+      const runningScripts = ns.ps("home");
+      let freedRam = 0;
+
+      for (const script of runningScripts) {
+        // Don't kill main.js or resource manager, but consider killing other scripts
+        if (
+          script.filename !== "/main.js" &&
+          script.filename !== "/core/resource-manager/index.js" &&
+          script.filename !== "/core/server-manager/index.js"
+        ) {
+          const scriptRam = ns.getScriptRam(script.filename) * script.threads;
+          if (scriptRam > 0.5) {
+            // Only kill scripts using significant RAM
+            ns.kill(script.filename, "home", ...script.args);
+            freedRam += scriptRam;
+            ns.print(
+              `🧹 Killed ${script.filename} to free ${scriptRam.toFixed(
+                2
+              )}GB RAM`
+            );
+
+            // Check if we've freed enough RAM
+            if (freedRam >= serverManagerRam) {
+              await ns.sleep(100); // Give system time to update RAM usage
+              break;
+            }
+          }
+        }
       }
+
+      // Recheck RAM availability after cleanup
+      const newAvailableRam =
+        ns.getServerMaxRam("home") - ns.getServerUsedRam("home");
+      if (newAvailableRam < serverManagerRam) {
+        timestampedPrint(
+          ns,
+          `⚠️ Still insufficient RAM after cleanup: ${newAvailableRam.toFixed(
+            2
+          )}GB available, need ${serverManagerRam}GB`
+        );
+        timestampedPrint(
+          ns,
+          "💡 Consider: 1) Reducing homeReservedRam, 2) Upgrading home server, 3) Optimizing script usage"
+        );
+        return; // Skip this refresh cycle
+      } else {
+        timestampedPrint(
+          ns,
+          `✅ Freed ${freedRam.toFixed(
+            2
+          )}GB RAM, proceeding with server manager`
+        );
+      }
+    }
+
+    // Run server manager once
+    const pid = ns.exec(
+      "/core/server-manager/index.js",
+      "home",
+      1,
+      config.shouldUpgradeServers,
+      config.homeReservedRam
+    );
+
+    if (pid > 0) {
+      // Wait for server manager to complete
+      let attempts = 0;
+      const maxAttempts = 20; // 10 seconds max wait
+      while (ns.isRunning(pid) && attempts < maxAttempts) {
+        await ns.sleep(500);
+        attempts++;
+      }
+
+      if (attempts < maxAttempts) {
+        // Server manager completed successfully
+        coordinator.markServerDataRefreshed();
+        timestampedPrint(ns, "✅ Server manager refresh completed");
+      } else {
+        // Server manager took too long or failed
+        timestampedPrint(ns, "⚠️ Server manager refresh timed out");
+      }
+    } else {
+      // Even after RAM checks, server manager failed to start
+      const finalAvailableRam =
+        ns.getServerMaxRam("home") - ns.getServerUsedRam("home");
+      timestampedPrint(
+        ns,
+        `❌ Server manager failed to start despite RAM check (${finalAvailableRam.toFixed(
+          2
+        )}GB available)`
+      );
+      timestampedPrint(
+        ns,
+        "🔧 This may indicate a deeper issue - check server manager script integrity"
+      );
     }
   }
 
@@ -251,10 +416,12 @@ async function coordinateFileCopying(ns, coordinator, config) {
  * @param {NS} ns - NetScript API
  * @param {ProcessHealthMonitor} processMonitor - Process monitor
  * @param {ProcessCoordinator} coordinator - Process coordinator
+ * @param {MoneyTracker} moneyTracker - Money tracker instance
  */
-function outputSystemStatus(ns, processMonitor, coordinator) {
+function outputSystemStatus(ns, processMonitor, coordinator, moneyTracker) {
   const healthSummary = processMonitor.getHealthSummary();
   const statusSummary = coordinator.getStatusSummary();
+  const moneyStatus = moneyTracker.getStatus();
 
   // Only output status every 30 seconds to avoid spam
   const now = Date.now();
@@ -267,6 +434,13 @@ function outputSystemStatus(ns, processMonitor, coordinator) {
         `Processes: ${healthSummary.healthy}✅ ${healthSummary.stopped}⛔ | ` +
         `Data Age: S:${statusSummary.serverDataAge}s T:${statusSummary.targetDataAge}s`
     );
+
+    ns.print(
+      `💰 Money Status - Rate: ${moneyStatus.formattedCurrentRate}/sec | ` +
+        `Strategy: ${moneyStatus.currentStrategy} | ` +
+        `Stagnant: ${moneyStatus.isStagnant ? "YES" : "NO"}`
+    );
+
     outputSystemStatus.lastOutput = now;
   }
 }
@@ -285,12 +459,7 @@ async function copyFilesToAvailableServers(ns, availableServers) {
   }
 
   // Files to copy
-  const filesToCopy = [
-    "/core/workers/worker.js",
-    "/core/operations/hack.js",
-    "/core/operations/grow.js",
-    "/core/operations/weaken.js",
-  ];
+  const filesToCopy = ["/core/workers/worker.js"];
 
   // Copy to each server efficiently
   for (const server of servers) {

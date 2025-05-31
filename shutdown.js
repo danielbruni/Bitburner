@@ -6,8 +6,8 @@
  *   run shutdown.js --clear-data=true - Shutdown and clear data for fresh restart
  */
 
-import { clearDataFolder } from "./core/utils/data";
-import { cleanAllServers } from "./core/utils/servers";
+import { clearDataFolder } from "/core/utils/data";
+import { cleanAllServers } from "/core/utils/servers";
 
 /** @param {NS} ns */
 export async function main(ns) {

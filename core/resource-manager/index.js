@@ -7,6 +7,7 @@ import { prepareServers } from "./prepare-servers.js";
 import { prioritizeTasks } from "./task-prioritization.js";
 import { allocateResources } from "./resource-allocation.js";
 import { cleanupWorkers, outputStatus } from "./utils.js";
+import { createStrategyCoordinator } from "../process/strategy-coordinator.js";
 import {
   RESOURCE_CONFIG,
   getConfig,
@@ -29,9 +30,11 @@ export async function main(ns) {
     ns.exec("/core/server-manager/index.js", "home", 1);
     await ns.sleep(1000);
   }
-
   // Disable logs
   ns.disableLog("ALL");
+  // Initialize strategy coordinator
+  const strategyCoordinator = createStrategyCoordinator(ns);
+  let currentStrategy = strategyCoordinator.getCurrentStrategy();
 
   // Prepare servers with required scripts
   await prepareServers(ns);
@@ -45,10 +48,25 @@ export async function main(ns) {
     securityThreshold,
     homeReservedRam,
   };
-
   // Main loop
   while (true) {
     try {
+      // Check for strategy changes
+      const strategyChanged =
+        strategyCoordinator.checkAndApplyStrategyChanges();
+      if (strategyChanged) {
+        const newStrategy = strategyCoordinator.getCurrentStrategy();
+        if (newStrategy !== currentStrategy) {
+          ns.print(
+            `🔄 Strategy changed from ${currentStrategy} to ${newStrategy}`
+          );
+          currentStrategy = newStrategy;
+
+          // Apply strategy-specific adjustments to task data
+          applyStrategyAdjustments(currentStrategy, taskData);
+        }
+      }
+
       // Load server data
       const serverData = JSON.parse(
         ns.read("/data/servers.json") || '{"available":[],"targets":[]}'
@@ -97,5 +115,48 @@ export async function main(ns) {
       ns.print(`ERROR: ${error.toString()}`);
       await ns.sleep(5000);
     }
+  }
+}
+
+/**
+ * Apply strategy-specific adjustments to resource allocation
+ * @param {string} strategy - Current strategy name
+ * @param {Object} taskData - Task data object to modify
+ */
+function applyStrategyAdjustments(strategy, taskData) {
+  switch (strategy) {
+    case "aggressive":
+      // More aggressive resource allocation, lower thresholds
+      taskData.moneyThreshold = Math.max(1000, taskData.moneyThreshold * 0.5);
+      taskData.securityThreshold = Math.min(
+        100,
+        taskData.securityThreshold * 1.5
+      );
+      break;
+
+    case "conservative":
+      // More conservative, higher thresholds
+      taskData.moneyThreshold = taskData.moneyThreshold * 2;
+      taskData.securityThreshold = Math.max(
+        1,
+        taskData.securityThreshold * 0.7
+      );
+      break;
+
+    case "emergency":
+      // Emergency mode - focus on best targets only
+      taskData.moneyThreshold = taskData.moneyThreshold * 3;
+      taskData.securityThreshold = Math.max(
+        1,
+        taskData.securityThreshold * 0.5
+      );
+      break;
+
+    case "balanced":
+    default:
+      // Reset to default values from config
+      taskData.moneyThreshold = getConfig("resources.moneyThreshold");
+      taskData.securityThreshold = getConfig("resources.securityThreshold");
+      break;
   }
 }

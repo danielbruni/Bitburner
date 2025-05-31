@@ -7,4 +7,10 @@ dist
 *.local
 *.local.*
 
+# AI assistant context files (development environment specific)
+.ai-context.json
+.ai-guidelines.md
+
 data/*.txt
+data/*.json
+!data/*.example.json
